@@ -1,0 +1,25 @@
+{
+  "name": "Time Tournament: Champion of Eras",
+  "short_name": "TimeTournament",
+  "description": "2D Retro Arcade Fighting Game and Tournament Champion Dossier",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#0A0006",
+  "theme_color": "#E60045",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "./icon192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "./icon512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["games", "entertainment", "action"]
+}

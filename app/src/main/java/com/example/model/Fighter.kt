@@ -8,6 +8,13 @@ import com.example.ui.theme.TapoutNeonBlue
 import com.example.ui.theme.TapoutNeonPurple
 import com.example.ui.theme.TapoutOrange
 
+data class PersonalityTrait(
+    val name: String,
+    val description: String,
+    val badgeColor: Color = TapoutGold,
+    val ratingPct: Float = 0.85f
+)
+
 data class Fighter(
     val id: String,
     val name: String,
@@ -15,6 +22,9 @@ data class Fighter(
     val style: String,
     val era: String,
     val personality: String,
+    val traits: List<PersonalityTrait>,
+    val combatPhilosophy: String,
+    val timelineOrigin: String,
     val homeStageId: String,
     val maxHp: Int,
     val speed: Float,
@@ -23,6 +33,8 @@ data class Fighter(
     val kickDamage: Int,
     val specialDamage: Int,
     val specialName: String,
+    val signatureMoveDescription: String,
+    val weaponEquipment: String,
     val themeColor: Color,
     val accentColor: Color,
     val avatarCode: String,
@@ -31,10 +43,12 @@ data class Fighter(
     val statDefense: Float,   // 0.0 to 1.0
     val statSpecial: Float,   // 0.0 to 1.0
     val introQuote: String,
+    val tauntQuote: String,
     val specialQuote: String,
     val victoryQuote: String,
     val bio: String,
-    val storyArc: String
+    val storyArc: String,
+    val rivalFighterName: String
 )
 
 object Roster {
@@ -46,6 +60,14 @@ object Roster {
             style = "NINJUTSU & SHADOWSTEP",
             era = "1580 FEUDAL KYOTO",
             personality = "Calm, lethal, disciplined, and mysterious.",
+            traits = listOf(
+                PersonalityTrait("Silent Focus", "Maintains absolute stillness in heart and breath until the lethal strike window opens.", TapoutNeonPurple, 0.95f),
+                PersonalityTrait("Shadow Discipline", "Adheres to the ancient Shinobi oath of stealth, evasion, and temporal concealment.", TapoutNeonBlue, 0.90f),
+                PersonalityTrait("Ancestral Honor", "Fights exclusively to restore his fallen clan and avenge the Kyoto monastery breach.", TapoutGold, 0.85f),
+                PersonalityTrait("Spacetime Weaver", "Manipulates void rips in space to evade kinetic counter-attacks effortlessly.", Color(0xFFE080FF), 0.88f)
+            ),
+            combatPhilosophy = "The blade you do not see is the one that decides your fate. True power lies in flow, deception, and precise lethal execution without wasted motion.",
+            timelineOrigin = "Feudal Kyoto Mountain Hermitage • Sengoku Jidai Era (1580)",
             homeStageId = "stage1",
             maxHp = 100,
             speed = 3.3f,
@@ -54,6 +76,8 @@ object Roster {
             kickDamage = 20,
             specialDamage = 38,
             specialName = "VOID BLADE DASH",
+            signatureMoveDescription = "Dashes instantaneously through quantum rift dimensions, slashing through the opponent's guard with twin void-infused kunai blades.",
+            weaponEquipment = "Twin Spacetime Kunai, Smoke Bombs & Shadow Silk Cowl",
             themeColor = TapoutNeonPurple,
             accentColor = Color(0xFFE080FF),
             avatarCode = "01",
@@ -62,10 +86,12 @@ object Roster {
             statDefense = 0.65f,
             statSpecial = 0.90f,
             introQuote = "Step into darkness... your blade cannot cut what it cannot see.",
+            tauntQuote = "You swing at ghosts. Is this your best?",
             specialQuote = "VOID RIFT SHADOW CRUSH!",
             victoryQuote = "A true shadow leaves no trace upon the battlefield.",
             bio = "Trained in the mountain cloisters of Kyoto, Renzo was chosen by the sacred clan elders to investigate spacetime tears that were abducting warriors. Moving silently between dimensions, he wields twin chakra kunai that cut through kinetic barriers.",
-            storyArc = "Seeking to restore his destroyed ninja village by claiming the Chrono Core at the top of the Celestial Pantheon tournament."
+            storyArc = "Seeking to restore his destroyed ninja village by claiming the Chrono Core at the top of the Celestial Pantheon tournament.",
+            rivalFighterName = "TITAN MMA"
         ),
         Fighter(
             id = "mma",
@@ -74,6 +100,14 @@ object Roster {
             style = "CYBER FREESTYLE COMBAT",
             era = "2099 NEO TOKYO",
             personality = "Aggressive, confident, calculated, and high-tech.",
+            traits = listOf(
+                PersonalityTrait("Overclocked Drive", "Pushes neural implants past safety thresholds to achieve blinding reaction times.", TapoutBrightRed, 0.96f),
+                PersonalityTrait("Data-Driven Striking", "Simulates 10,000 punch vectors per second using tactical AI telemetry.", TapoutOrange, 0.92f),
+                PersonalityTrait("Unshakable Ego", "Believes biological warriors from the past are obsolete relics.", TapoutGold, 0.88f),
+                PersonalityTrait("Titan Armor", "Synthetic carbon skeleton absorbs blunt impact and redistributes force as kinetic bursts.", Color(0xFFFF9966), 0.85f)
+            ),
+            combatPhilosophy = "Victory is a mathematical certainty when power, hydraulic velocity, and cybernetic precision converge. Brute force meets synthetic evolution.",
+            timelineOrigin = "Neo Tokyo Underground Octagon Dome • Cyber Epoch (2099)",
             homeStageId = "stage2",
             maxHp = 120,
             speed = 2.6f,
@@ -82,6 +116,8 @@ object Roster {
             kickDamage = 24,
             specialDamage = 42,
             specialName = "TITAN IMPACT KNEE",
+            signatureMoveDescription = "Fires hydraulic micro-thrusters in his cybernetic knee joints, delivering a hyper-velocity flying knee strike that crumbles heavy armor.",
+            weaponEquipment = "Titanium-Tungsten Fist Plating & Kinetic Overdrive Kneepads",
             themeColor = TapoutBrightRed,
             accentColor = Color(0xFFFF9966),
             avatarCode = "02",
@@ -90,10 +126,12 @@ object Roster {
             statDefense = 0.80f,
             statSpecial = 0.85f,
             introQuote = "My cyber-servos are overclocked. You're going to sleep in round 1.",
+            tauntQuote = "Calculating victory probability: 99.8%. Give up.",
             specialQuote = "MAXIMUM THRUST TITAN OVERDRIVE!",
             victoryQuote = "Calculated knockout. Just as my neural engine simulated.",
             bio = "Marcus Vance dominated the zero-gravity underground cage leagues of 2099. Upgraded with carbon-fiber reinforced bones and hydraulic knee actuators, his striking power rivals industrial demolition machinery.",
-            storyArc = "Fighting to prove human-synthetic hybrid supremacy across all mortal history."
+            storyArc = "Fighting to prove human-synthetic hybrid supremacy across all mortal history.",
+            rivalFighterName = "IRON BOXER"
         ),
         Fighter(
             id = "boxer",
@@ -102,6 +140,14 @@ object Roster {
             style = "CLASSIC HEAVYWEIGHT BOXING",
             era = "1974 BROOKLYN BRONX",
             personality = "Gritty, charismatic, resilient, and fearless.",
+            traits = listOf(
+                PersonalityTrait("Indestructible Grit", "Never backs down, drawing greater punching power when pinned against the ropes.", TapoutNeonBlue, 0.94f),
+                PersonalityTrait("Street Smart Instincts", "Reads body weight shifts with razor-sharp boxing reflexes honed in 500 street bouts.", TapoutGold, 0.90f),
+                PersonalityTrait("Iron Chin", "Shrugs off heavy concussive blows that would knock ordinary combatants cold.", TapoutCrimson, 0.92f),
+                PersonalityTrait("Old-School Heart", "Values pure sweat, raw heart, and honest fist-to-fist fighting spirit.", Color(0xFF80EEFF), 0.88f)
+            ),
+            combatPhilosophy = "Float like thunder, strike like an earthquake. A real champion gets knocked down six times and stands back up seven. No fancy gadgets—just raw hooks.",
+            timelineOrigin = "74th Precinct Boxing Club, Brooklyn NYC • Golden Age (1974)",
             homeStageId = "stage3",
             maxHp = 110,
             speed = 2.8f,
@@ -110,6 +156,8 @@ object Roster {
             kickDamage = 16,
             specialDamage = 40,
             specialName = "DRAGON UPPERCUT",
+            signatureMoveDescription = "Dips low in the bob-and-weave stance, gathering explosive ground torque into a thunderous upward right hook that launches rivals airborne.",
+            weaponEquipment = "Vintage Hand-Wrapped Leather Boxing Gloves & Brass Belt Buckle",
             themeColor = TapoutNeonBlue,
             accentColor = Color(0xFF80EEFF),
             avatarCode = "03",
@@ -118,10 +166,12 @@ object Roster {
             statDefense = 0.70f,
             statSpecial = 0.80f,
             introQuote = "Hands up, chin down. Let's see if you can take a Brooklyn hook!",
+            tauntQuote = "Come on! My grandma hits harder than that!",
             specialQuote = "TAKE A FLIGHT WITH THE DRAGON UPPERCUT!",
             victoryQuote = "Down goes another contender! Ring the bell, ref!",
             bio = "Jack 'Thunder' Sullivan rose from cold Brooklyn basements to the world heavyweight championship. Known for his devastating slip-and-counter punches and indestructible chin, he never backs down from any clash.",
-            storyArc = "Transported mid-championship bout into the time arena, Jack fights to bring the ultimate belt back to 1974."
+            storyArc = "Transported mid-championship bout into the time arena, Jack fights to bring the ultimate belt back to 1974.",
+            rivalFighterName = "COLOSSEUM GRAPPLER"
         ),
         Fighter(
             id = "wrestler",
@@ -130,6 +180,14 @@ object Roster {
             style = "GRECO-ROMAN OLYMPIAN",
             era = "79 AD ANCIENT ROME",
             personality = "Honorable, roaring, proud, and mighty.",
+            traits = listOf(
+                PersonalityTrait("Gladiator Pride", "Commands the arena crowd with roaring charisma and unshakable Roman glory.", TapoutGold, 0.96f),
+                PersonalityTrait("Titan Grip", "Once his hands lock around an opponent, escape is impossible without divine intervention.", TapoutCrimson, 0.98f),
+                PersonalityTrait("Martial Honor", "Refuses cowardly strikes, demanding face-to-face heavy grappling duels.", Color(0xFFFFF080), 0.89f),
+                PersonalityTrait("Indomitable Mass", "Anchors himself to the arena sand like a fortress tower against knockbacks.", TapoutOrange, 0.94f)
+            ),
+            combatPhilosophy = "The earth will yield before a true gladiator does. Throw your foe with the weight of the heavens and let the crowd roar their tribute.",
+            timelineOrigin = "Flavian Amphitheatre (Colosseum), Imperial Rome • Classical Antiquity (79 AD)",
             homeStageId = "stage4",
             maxHp = 135,
             speed = 2.2f,
@@ -138,6 +196,8 @@ object Roster {
             kickDamage = 22,
             specialDamage = 48,
             specialName = "SEISMIC OLYMPIA SUPLEX",
+            signatureMoveDescription = "Grips the opponent in a vice-like bearhug, vaults backwards with Herculean power, and crashes them headfirst into the arena bedrock.",
+            weaponEquipment = "Gilded Gladiator Cestus, Golden Laurel Crown & Imperial Shoulder Plate",
             themeColor = TapoutGold,
             accentColor = Color(0xFFFFF080),
             avatarCode = "04",
@@ -146,10 +206,12 @@ object Roster {
             statDefense = 0.95f,
             statSpecial = 0.92f,
             introQuote = "By Mars and Jupiter, I shall break your resolve against the sand!",
+            tauntQuote = "Is that the blow of a warrior or a frightened child?",
             specialQuote = "FEEL THE WRATH OF OLYMPUS!",
             victoryQuote = "Glory to Rome! The arena belongs to the undefeated lion!",
             bio = "Maximus of Thrace conquered every coliseum from Alexandria to Rome. Crowned with laurel wreaths by emperors, his superhuman grip and seismic slams shake the earth beneath his opponents.",
-            storyArc = "Summoned to the time nexus to claim divine immortality from the tournament creators."
+            storyArc = "Summoned to the time nexus to claim divine immortality from the tournament creators.",
+            rivalFighterName = "VOLCANIC WARLORD"
         ),
         Fighter(
             id = "valkyrie",
@@ -158,6 +220,14 @@ object Roster {
             style = "SYNTHETIC VALHALLA COMBAT",
             era = "2140 VALKYRIE CORPS",
             personality = "Noble, swift, futuristic, and laser-focused.",
+            traits = listOf(
+                PersonalityTrait("Astral Precision", "Channels plasma particles along magnetic rail conduits for instantaneous thrust.", Color(0xFF00E5FF), 0.93f),
+                PersonalityTrait("Strategic Sovereignty", "Calculates battlefield vectors from high-altitude tactical scans.", TapoutNeonPurple, 0.89f),
+                PersonalityTrait("Valkyrie Oath", "Sworn to safeguard the space-time continuum from temporal warlords and chaos rifts.", TapoutGold, 0.92f),
+                PersonalityTrait("Photon Aegis", "Projects electromagnetic force barriers that deflect energy projectiles.", Color(0xFFB3FFFF), 0.91f)
+            ),
+            combatPhilosophy = "Precision conquers brute savagery. We strike with the speed of northern lights and defend with the fortress of the cosmos.",
+            timelineOrigin = "Orbital Station Asgard-9 • Valkyrie Fleet Frontier (2140)",
             homeStageId = "stage7",
             maxHp = 105,
             speed = 3.1f,
@@ -166,6 +236,8 @@ object Roster {
             kickDamage = 21,
             specialDamage = 44,
             specialName = "AURORA PLASMA SPEAR",
+            signatureMoveDescription = "Summons an ionized aurora plasma lance, projecting a concentrated beam of solar energy that pierces across the entire combat arena.",
+            weaponEquipment = "Photon Valkyrie Wings, Plasma Rail Lance & Asgardian Force Shield",
             themeColor = Color(0xFF00E5FF),
             accentColor = Color(0xFFB3FFFF),
             avatarCode = "05",
@@ -174,10 +246,12 @@ object Roster {
             statDefense = 0.75f,
             statSpecial = 0.88f,
             introQuote = "Scanning combat parameters... Target acquisition locked. Engage!",
+            tauntQuote = "Telemetry confirms: your fighting pattern is obsolete.",
             specialQuote = "AURORA PLASMA DISCHARGE!",
             victoryQuote = "Target neutralized. Recording telemetry to the Valkyrie mainframe.",
             bio = "Engineered as the apex guardian unit of the orbital station Asgard-9, Astrid channels high-energy plasma arcs into supersonic aerial strikes and kinetic force shields.",
-            storyArc = "Tasked with containing temporal anomalies threatening the stability of the 22nd century."
+            storyArc = "Tasked with containing temporal anomalies threatening the stability of the 22nd century.",
+            rivalFighterName = "SHADOW NINJA"
         ),
         Fighter(
             id = "warlord",
@@ -186,6 +260,14 @@ object Roster {
             style = "LAVA CRUSHING BRAWLER",
             era = "ERA OF FLAME",
             personality = "Furious, explosive, commanding, and relentless.",
+            traits = listOf(
+                PersonalityTrait("Molten Berserk", "Ignites superheated magma veins in his fists when taking battle damage.", TapoutOrange, 0.98f),
+                PersonalityTrait("Seismic Dominance", "Stomps shatter the ground, creating eruptive fissures under enemy footing.", TapoutBrightRed, 0.94f),
+                PersonalityTrait("Unstoppable Onslaught", "Marches through blocking defenses with the weight of an active pyroclastic surge.", TapoutGold, 0.91f),
+                PersonalityTrait("Cataclysmic Will", "Believes peace is weakness and only eternal conflict tempers true warriors.", Color(0xFFFF5500), 0.95f)
+            ),
+            combatPhilosophy = "All things return to ash and magma. Those who hesitate are consumed by the furnace of war. Strike until only molten rock remains.",
+            timelineOrigin = "Subterranean Magma Caldera Chambers • Primeval Flame Epoch",
             homeStageId = "stage8",
             maxHp = 130,
             speed = 2.4f,
@@ -194,6 +276,8 @@ object Roster {
             kickDamage = 23,
             specialDamage = 46,
             specialName = "MAGMA ERUPTION SLAM",
+            signatureMoveDescription = "Punches deep into the ground, detonating a concentrated volcanic pillar beneath the opponent that blasts them skyward in molten debris.",
+            weaponEquipment = "Obsidian-Lava Gauntlets, Molten Spiked Pauldrons & Flame Core",
             themeColor = TapoutOrange,
             accentColor = Color(0xFFFF5500),
             avatarCode = "06",
@@ -202,10 +286,12 @@ object Roster {
             statDefense = 0.88f,
             statSpecial = 0.94f,
             introQuote = "Burn in the crucible of battle! Nothing survives the eruption!",
+            tauntQuote = "You are kindling waiting for my flame!",
             specialQuote = "HELLFIRE VOLCANIC CATACLYSM!",
             victoryQuote = "Ash to ash! The fire consumes all weakness!",
             bio = "Born in the subterranean caldera chambers beneath burning rift faults, Ignis commands molten kinetic fury that superheats his fists to blast through solid iron.",
-            storyArc = "Seeking to engulf the multiverse in an eternal cleansing flame."
+            storyArc = "Seeking to engulf the multiverse in an eternal cleansing flame.",
+            rivalFighterName = "COLOSSEUM GRAPPLER"
         )
     )
 

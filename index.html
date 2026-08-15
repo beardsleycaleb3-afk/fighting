@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <link rel="manifest" href="./manifest.json" />
+  <link rel="icon" type="image/png" sizes="192x192" href="./icon192.png" />
+  <link rel="apple-touch-icon" href="./icon192.png" />
+  <meta name="theme-color" content="#E60045" />
+  <title>TIME TOURNAMENT — Fighter Dossier & Battle Manual</title>
+  <style>
+    :root {
+      --bg-dark: #0A0006;
+      --surface-card: #16000E;
+      --surface-elevated: #220016;
+      --crimson: #E60045;
+      --bright-red: #FF1A5E;
+      --gold: #FFC837;
+      --orange: #FF7020;
+      --neon-blue: #00E5FF;
+      --neon-purple: #C026D3;
+      --border-dark: rgba(255, 255, 255, 0.12);
+      --font-mono: 'SF Pro Mono', 'Roboto Mono', Menlo, Consolas, monospace;
+      --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+
+    body {
+      background-color: var(--bg-dark);
+      color: #FFFFFF;
+      font-family: var(--font-sans);
+      width: 100vw;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      overflow-x: hidden;
+    }
+
+    .app-container {
+      width: 100%;
+      max-width: 480px;
+      min-height: 100vh;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    /* HEADER */
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 2px;
+    }
+
+    .header-title {
+      font-family: var(--font-mono);
+      font-size: 16px;
+      font-weight: 900;
+      letter-spacing: 1.5px;
+      color: var(--crimson);
+      text-shadow: 0 0 12px rgba(230, 0, 69, 0.6);
+    }
+
+    .header-subtitle {
+      font-size: 8.5px;
+      font-weight: 600;
+      color: rgba(255, 255, 255, 0.6);
+      letter-spacing: 0.8px;
+    }
+
+    .status-badge {
+      font-family: var(--font-mono);
+      font-size: 8.5px;
+      font-weight: 700;
+      padding: 4px 8px;
+      border-radius: 20px;
+      background: var(--surface-card);
+      border: 1px solid var(--gold);
+      color: var(--gold);
+    }
+
+    /* COMBO HUD & STREAK COUNTER */
+    .combo-hud {
+      background: rgba(0, 0, 0, 0.6);
+      border: 1px solid rgba(255, 200, 55, 0.4);
+      border-radius: 10px;
+      padding: 8px 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      transition: all 0.2s ease;
+    }
+
+    .combo-hud.hidden {
+      opacity: 0.2;
+    }
+
+    .combo-num {
+      font-family: var(--font-mono);
+      font-size: 18px;
+      font-weight: 900;
+      color: var(--gold);
+      text-shadow: 0 0 10px rgba(255, 200, 55, 0.7);
+      transition: transform 0.15s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    .combo-label {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      font-weight: 800;
+      color: var(--neon-blue);
+      letter-spacing: 1px;
+    }
+
+    .combat-test-btns {
+      display: flex;
+      gap: 6px;
+    }
+
+    .btn-test {
+      padding: 5px 9px;
+      font-family: var(--font-mono);
+      font-size: 9px;
+      font-weight: 800;
+      border-radius: 6px;
+      border: 1px solid var(--border-dark);
+      background: var(--surface-card);
+      color: #FFF;
+      cursor: pointer;
+      transition: all 0.1s ease;
+    }
+
+    .btn-test:active {
+      transform: scale(0.95);
+      background: var(--crimson);
+    }
+
+    /* ROSTER GRID */
+    .roster-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 6px;
+    }
+
+    .roster-card {
+      background: var(--surface-card);
+      border: 1.5px solid var(--border-dark);
+      border-radius: 8px;
+      padding: 6px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .roster-card.selected {
+      transform: translateY(-2px);
+    }
+
+    .roster-badge {
+      width: 18px;
+      height: 18px;
+      border-radius: 4px;
+      font-family: var(--font-mono);
+      font-size: 8px;
+      font-weight: 900;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #FFF;
+    }
+
+    .roster-name {
+      font-family: var(--font-mono);
+      font-size: 8.5px;
+      font-weight: 800;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .roster-era {
+      font-size: 7px;
+      color: rgba(255, 255, 255, 0.5);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* HERO PORTRAIT & META */
+    .hero-card {
+      background: var(--surface-card);
+      border-radius: 12px;
+      border: 1px solid var(--border-dark);
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .hero-layout {
+      display: flex;
+      gap: 10px;
+      height: 130px;
+    }
+
+    .canvas-box {
+      width: 110px;
+      height: 100%;
+      border-radius: 8px;
+      overflow: hidden;
+      background: #000;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    #portraitCanvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    .hero-meta-panel {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .hero-name {
+      font-family: var(--font-mono);
+      font-size: 14px;
+      font-weight: 900;
+      letter-spacing: 0.5px;
+    }
+
+    .hero-title {
+      font-size: 9px;
+      font-weight: 700;
+      color: var(--gold);
+    }
+
+    .hero-style {
+      font-size: 7.5px;
+      color: rgba(255, 255, 255, 0.6);
+    }
+
+    .hero-quote {
+      font-size: 8px;
+      font-style: italic;
+      color: rgba(255, 255, 255, 0.85);
+      line-height: 11px;
+      background: rgba(0, 0, 0, 0.3);
+      padding: 4px 6px;
+      border-radius: 4px;
+    }
+
+    /* STATS BARS */
+    .stats-matrix {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      background: rgba(0,0,0,0.3);
+      padding: 6px;
+      border-radius: 6px;
+    }
+
+    .stat-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .stat-tag {
+      font-family: var(--font-mono);
+      font-size: 7.5px;
+      font-weight: 700;
+      width: 24px;
+      color: rgba(255, 255, 255, 0.6);
+    }
+
+    .stat-track {
+      flex: 1;
+      height: 4px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+
+    .stat-bar {
+      height: 100%;
+      border-radius: 2px;
+      transition: width 0.3s ease;
+    }
+
+    .stat-num {
+      font-family: var(--font-mono);
+      font-size: 7.5px;
+      width: 24px;
+      text-align: right;
+      color: rgba(255, 255, 255, 0.7);
+    }
+
+    /* TABS */
+    .tabs-bar {
+      display: flex;
+      gap: 4px;
+    }
+
+    .tab-btn {
+      flex: 1;
+      padding: 6px;
+      font-family: var(--font-mono);
+      font-size: 8.5px;
+      font-weight: 800;
+      text-align: center;
+      background: var(--surface-card);
+      border: 1px solid var(--border-dark);
+      border-radius: 6px;
+      color: rgba(255, 255, 255, 0.6);
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .tab-btn.active {
+      background: var(--crimson);
+      border-color: var(--bright-red);
+      color: #FFF;
+    }
+
+    /* TAB CONTENT */
+    .tab-container {
+      background: var(--surface-card);
+      border-radius: 10px;
+      border: 1px solid var(--border-dark);
+      padding: 10px;
+      min-height: 160px;
+    }
+
+    .lore-section-title {
+      font-family: var(--font-mono);
+      font-size: 8.5px;
+      font-weight: 900;
+      letter-spacing: 0.5px;
+      margin-bottom: 4px;
+    }
+
+    .lore-text {
+      font-size: 8.5px;
+      line-height: 13px;
+      color: rgba(255, 255, 255, 0.85);
+    }
+
+    .lore-meta-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+      margin-top: 8px;
+    }
+
+    .lore-meta-card {
+      background: rgba(0, 0, 0, 0.4);
+      padding: 6px;
+      border-radius: 6px;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .lore-meta-card .label {
+      font-size: 7px;
+      color: rgba(255, 255, 255, 0.5);
+      font-weight: 700;
+    }
+
+    .lore-meta-card .val {
+      font-family: var(--font-mono);
+      font-size: 8px;
+      font-weight: 800;
+    }
+
+    .traits-container {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .trait-card {
+      background: rgba(0, 0, 0, 0.4);
+      padding: 6px 8px;
+      border-radius: 6px;
+    }
+
+    .trait-header {
+      display: flex;
+      justify-content: space-between;
+      font-family: var(--font-mono);
+      font-size: 8px;
+      font-weight: 800;
+      margin-bottom: 3px;
+    }
+
+    .trait-bar-bg {
+      height: 3px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 2px;
+      margin-bottom: 4px;
+      overflow: hidden;
+    }
+
+    .trait-bar-fill {
+      height: 100%;
+      border-radius: 2px;
+    }
+
+    .trait-desc {
+      font-size: 8px;
+      color: rgba(255, 255, 255, 0.75);
+      line-height: 11px;
+    }
+
+    /* STAGES ARENA EXPANDER */
+    .stages-section-title {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 900;
+      color: var(--gold);
+      margin-top: 4px;
+    }
+
+    .stages-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .stage-card {
+      background: var(--surface-card);
+      border-radius: 8px;
+      padding: 8px;
+      border: 1px solid var(--border-dark);
+    }
+
+    .stage-header {
+      display: flex;
+      justify-content: space-between;
+      font-family: var(--font-mono);
+      font-size: 8px;
+      font-weight: 800;
+    }
+
+    .stage-name {
+      font-family: var(--font-mono);
+      font-size: 9px;
+      font-weight: 900;
+      color: #FFF;
+      margin: 2px 0;
+    }
+
+    .stage-desc {
+      font-size: 8px;
+      color: rgba(255, 255, 255, 0.75);
+      line-height: 11px;
+    }
+
+    .stage-meta {
+      display: flex;
+      gap: 12px;
+      font-size: 7.5px;
+      color: rgba(255, 255, 255, 0.5);
+      margin-top: 4px;
+    }
+
+    /* COMBAT SPECIAL MOVE CARD */
+    .special-move-banner {
+      background: rgba(0, 0, 0, 0.5);
+      border-left: 4px solid var(--crimson);
+      border-radius: 6px;
+      padding: 8px;
+      margin-bottom: 8px;
+    }
+
+    .special-badge {
+      display: inline-block;
+      font-family: var(--font-mono);
+      font-size: 7.5px;
+      font-weight: 900;
+      color: #FFF;
+      padding: 2px 5px;
+      border-radius: 3px;
+      margin-bottom: 3px;
+    }
+
+    .special-move-name {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      font-weight: 900;
+      margin-bottom: 2px;
+    }
+
+    .special-move-desc {
+      font-size: 8px;
+      line-height: 11px;
+      color: rgba(255, 255, 255, 0.8);
+    }
+
+    .philosophy-quote {
+      border-left: 2px solid var(--gold);
+      padding-left: 6px;
+      font-size: 8px;
+      font-style: italic;
+      line-height: 12px;
+      color: rgba(255, 255, 255, 0.85);
+      margin-bottom: 8px;
+    }
+
+    .quotes-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .quote-card {
+      background: rgba(0, 0, 0, 0.35);
+      padding: 4px 6px;
+      border-radius: 4px;
+      font-size: 7.5px;
+    }
+
+    .quote-type {
+      font-weight: 800;
+      color: var(--gold);
+      margin-right: 4px;
+    }
+
+    .quote-content {
+      font-style: italic;
+      color: rgba(255, 255, 255, 0.8);
+    }
+  </style>
+</head>
+<body>
+  <div class="app-container">
+    <!-- TOP HEADER -->
+    <header class="header">
+      <div>
+        <div class="header-title">TIME TOURNAMENT</div>
+        <div class="header-subtitle">CHAMPION DOSSIER & RETRO ARCADE HUB</div>
+      </div>
+      <div class="status-badge">ONLINE PWA</div>
+    </header>
+
+    <!-- COMBO PRACTICE HUD -->
+    <div class="combo-hud" id="comboDisplay">
+      <div>
+        <div class="combo-num" id="comboNumber">0x</div>
+        <div class="combo-label" id="comboLabel">PRACTICE COMBO</div>
+      </div>
+      <div class="combat-test-btns">
+        <button class="btn-test" id="btnPunch">👊 PUNCH</button>
+        <button class="btn-test" id="btnKick">🦵 KICK</button>
+        <button class="btn-test" id="btnSpecial">⚡ ULTRA</button>
+      </div>
+    </div>
+
+    <!-- ROSTER SELECTOR GRID -->
+    <div class="roster-grid" id="rosterGrid">
+      <!-- Injected via app.js -->
+    </div>
+
+    <!-- HERO CHARACTER CARD -->
+    <div class="hero-card">
+      <div class="hero-layout">
+        <div class="canvas-box">
+          <canvas id="portraitCanvas" width="110" height="130"></canvas>
+        </div>
+        <div class="hero-meta-panel">
+          <div>
+            <div class="hero-name" id="fighterName">SHADOW NINJA</div>
+            <div class="hero-title" id="fighterTitle">★ THE PHANTOM BLADE ★</div>
+            <div class="hero-style" id="fighterStyle">NINJUTSU • 1580 FEUDAL KYOTO</div>
+          </div>
+          <div class="hero-quote" id="fighterQuote">"Step into darkness..."</div>
+        </div>
+      </div>
+
+      <!-- STATS METERS -->
+      <div class="stats-matrix">
+        <div class="stat-row">
+          <span class="stat-tag">PWR</span>
+          <div class="stat-track"><div class="stat-bar" id="statPower"></div></div>
+          <span class="stat-num" id="statPowerVal">70%</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-tag">SPD</span>
+          <div class="stat-track"><div class="stat-bar" id="statSpeed"></div></div>
+          <span class="stat-num" id="statSpeedVal">95%</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-tag">DEF</span>
+          <div class="stat-track"><div class="stat-bar" id="statDefense"></div></div>
+          <span class="stat-num" id="statDefenseVal">65%</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-tag">SPC</span>
+          <div class="stat-track"><div class="stat-bar" id="statSpecial"></div></div>
+          <span class="stat-num" id="statSpecialVal">90%</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- INNER SUB-TABS -->
+    <div class="tabs-bar">
+      <div class="tab-btn active" data-tab="story">STORYLINE</div>
+      <div class="tab-btn" data-tab="traits">TRAITS & MASTERY</div>
+      <div class="tab-btn" data-tab="combat">COMBAT LORE</div>
+    </div>
+
+    <!-- DYNAMIC TAB CONTENT -->
+    <div class="tab-container" id="tabContent">
+      <!-- Injected via app.js -->
+    </div>
+
+    <!-- ARENA STAGES (1-9) -->
+    <div class="stages-section-title">🏛️ MULTI-ERA BATTLEGROUNDS (STAGES 1-9)</div>
+    <div class="stages-grid" id="stagesGrid">
+      <!-- Injected via app.js -->
+    </div>
+  </div>
+
+  <script type="module" src="./src/js/app.js"></script>
+</body>
+</html>
