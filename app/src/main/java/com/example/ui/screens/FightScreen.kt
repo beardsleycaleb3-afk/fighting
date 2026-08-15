@@ -1,18 +1,11 @@
 package com.example.ui.screens
 
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.scaleIn
-import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -27,21 +20,24 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Bolt
-import androidx.compose.material.icons.filled.LocalFireDepartment
-import androidx.compose.material.icons.filled.VolumeOff
-import androidx.compose.material.icons.filled.VolumeUp
+import androidx.compose.material.icons.filled.ArrowForward
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.Slider
+import androidx.compose.material3.SliderDefaults
+import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -50,18 +46,14 @@ import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontFamily
@@ -81,6 +73,7 @@ import com.example.model.Stage
 import com.example.model.StageRoster
 import com.example.ui.theme.ArenaDark
 import com.example.ui.theme.BackgroundDark
+import com.example.ui.theme.BorderDark
 import com.example.ui.theme.HudHpCpuEnd
 import com.example.ui.theme.HudHpCpuStart
 import com.example.ui.theme.HudHpPlayerEnd
@@ -90,10 +83,8 @@ import com.example.ui.theme.TapoutBrightRed
 import com.example.ui.theme.TapoutCrimson
 import com.example.ui.theme.TapoutGold
 import com.example.ui.theme.TapoutNeonBlue
-import com.example.ui.theme.TapoutNeonPurple
 import com.example.ui.theme.TapoutOrange
-import kotlin.math.cos
-import kotlin.math.sin
+import kotlinx.coroutines.delay
 
 @Composable
 fun FightScreen(
@@ -117,145 +108,387 @@ fun FightScreen(
 
     var frameTick by remember { mutableIntStateOf(0) }
     var soundActive by remember { mutableStateOf(soundEngine?.isSoundEnabled() ?: true) }
+    var isPaused by remember { mutableStateOf(false) }
+    var masterVolume by remember { mutableFloatStateOf(0.8f) }
+    var hapticEnabled by remember { mutableStateOf(true) }
 
-    // Game loop at 60fps
-    LaunchedEffect(engine) {
+    // Dialogue State (Story Mode Message Window)
+    var showDialogueWindow by remember { mutableStateOf(true) }
+    var dialogueStep by remember { mutableIntStateOf(0) }
+    var currentTypedText by remember { mutableStateOf("") }
+    var isTyping by remember { mutableStateOf(false) }
+
+    // Final Smash Cinematic State
+    var showSmashCinematic by remember { mutableStateOf(false) }
+
+    val dialogueSequence = remember(playerFighter, enemyFighter) {
+        listOf(
+            Triple(playerFighter.name, "${playerFighter.spiritAnimalSymbol} ${playerFighter.title}", playerFighter.dialoguePrologue),
+            Triple(enemyFighter.name, "${enemyFighter.spiritAnimalSymbol} ${enemyFighter.title}", playerFighter.dialogueRivalResponse),
+            Triple(playerFighter.name, "${playerFighter.spiritAnimalSymbol} ${playerFighter.title}", playerFighter.dialogueVsRival),
+            Triple("SYSTEM", "⚡ TOURNAMENT ARBITER", "Fighters in position! Battle begins now!")
+        )
+    }
+
+    // Typewriter effect for dialogue
+    LaunchedEffect(dialogueStep, showDialogueWindow) {
+        if (showDialogueWindow && dialogueStep < dialogueSequence.size) {
+            val targetText = dialogueSequence[dialogueStep].third
+            currentTypedText = ""
+            isTyping = true
+            for (char in targetText) {
+                currentTypedText += char
+                delay(20)
+            }
+            isTyping = false
+        }
+    }
+
+    // Game loop at 60fps (paused during dialogue or pause menu)
+    LaunchedEffect(engine, isPaused, showDialogueWindow, showSmashCinematic) {
         var lastNanos = System.nanoTime()
         while (!engine.isMatchOver) {
             withFrameNanos { now ->
                 val dt = ((now - lastNanos) / 1_000_000_000f).coerceIn(0.001f, 0.05f)
                 lastNanos = now
-                engine.update(dt)
-                frameTick++
+                if (!isPaused && !showDialogueWindow && !showSmashCinematic) {
+                    engine.update(dt)
+                    frameTick++
+                }
             }
         }
     }
 
-    // Special meter pulsating glow animation
     val infiniteTransition = rememberInfiniteTransition(label = "specialPulse")
-    val specialGlow by infiniteTransition.animateFloat(
-        initialValue = 0.5f,
+    val smashPulse by infiniteTransition.animateFloat(
+        initialValue = 0.7f,
         targetValue = 1.0f,
         animationSpec = infiniteRepeatable(
             animation = tween(400, easing = FastOutSlowInEasing),
             repeatMode = RepeatMode.Reverse
         ),
-        label = "specialGlow"
+        label = "smashPulse"
     )
 
-    Column(
+    Box(
         modifier = modifier
             .fillMaxSize()
             .background(BackgroundDark)
             .testTag("fight_screen_container")
     ) {
-        // TOP HUD (Header)
-        SleekFightHud(
-            engine = engine,
-            stage = stage,
-            onExit = onExitToSelect,
-            soundActive = soundActive,
-            onToggleSound = {
-                soundActive = soundEngine?.toggleSound() ?: true
-            }
-        )
-
-        // ARENA CANVAS & HUD OVERLAYS
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .weight(1f)
-                .background(ArenaDark)
-        ) {
-            Canvas(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .testTag("fight_canvas")
-            ) {
-                drawStageAndFighters(engine, stage, frameTick)
-            }
-
-            // Real-Time Combo Counter HUD Overlay (Dynamic Scaling & Glow)
-            RealtimeComboOverlay(
-                comboCount = engine.playerCombo,
-                comboTier = engine.comboTier,
-                displayActive = engine.playerCombo > 1 && !engine.isMatchOver,
-                modifier = Modifier
-                    .align(Alignment.TopStart)
-                    .padding(start = 14.dp, top = 8.dp)
+        Column(modifier = Modifier.fillMaxSize()) {
+            // TOP HUD (Header with Pause / Settings button)
+            SleekFightHud(
+                engine = engine,
+                stage = stage,
+                onPause = { isPaused = true },
+                soundActive = soundActive,
+                onToggleSound = {
+                    soundActive = soundEngine?.toggleSound() ?: true
+                }
             )
 
-            // Special Move Dramatic Cut-In Banner
-            if (engine.specialCutInTimer > 0f && engine.specialCutInFighter != null) {
-                val cutInFighter = engine.specialCutInFighter!!
-                Box(
+            // ARENA CANVAS & HUD OVERLAYS
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+                    .background(ArenaDark)
+            ) {
+                Canvas(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .align(Alignment.Center)
-                        .background(
-                            Brush.verticalGradient(
-                                listOf(
-                                    Color.Transparent,
-                                    cutInFighter.themeColor.copy(alpha = 0.85f),
-                                    cutInFighter.accentColor.copy(alpha = 0.95f),
-                                    Color.Transparent
-                                )
-                            )
-                        )
-                        .padding(vertical = 12.dp),
-                    contentAlignment = Alignment.Center
+                        .fillMaxSize()
+                        .testTag("fight_canvas")
                 ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(
-                            text = "★ ULTRA MOVE TRIGGERED ★",
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.Black,
-                            letterSpacing = 2.sp,
-                            color = Color.White
-                        )
-                        Text(
-                            text = cutInFighter.specialName,
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.Black,
-                            fontStyle = FontStyle.Italic,
-                            color = TapoutGold
-                        )
-                        Text(
-                            text = "\"${cutInFighter.specialQuote}\"",
-                            fontSize = 10.sp,
-                            fontStyle = FontStyle.Italic,
-                            color = Color.White.copy(alpha = 0.9f)
-                        )
-                    }
+                    drawStageAndFighters(engine, stage, frameTick)
+                }
+
+                // Combo Counter Overlay
+                RealtimeComboOverlay(
+                    comboCount = engine.playerCombo,
+                    comboTier = engine.comboTier,
+                    displayActive = engine.playerCombo > 1 && !engine.isMatchOver,
+                    modifier = Modifier
+                        .align(Alignment.TopStart)
+                        .padding(start = 12.dp, top = 6.dp)
+                )
+
+                // Story Message Window Dialogue
+                if (showDialogueWindow && dialogueStep < dialogueSequence.size) {
+                    val (speaker, title, text) = dialogueSequence[dialogueStep]
+                    StoryDialogueWindow(
+                        speakerName = speaker,
+                        speakerTitle = title,
+                        dialogueText = if (isTyping) currentTypedText else text,
+                        isTyping = isTyping,
+                        onAdvance = {
+                            if (isTyping) {
+                                currentTypedText = text
+                                isTyping = false
+                            } else {
+                                soundEngine?.playSelect()
+                                if (dialogueStep + 1 < dialogueSequence.size) {
+                                    dialogueStep++
+                                } else {
+                                    showDialogueWindow = false
+                                }
+                            }
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth(0.94f)
+                            .align(Alignment.BottomCenter)
+                            .padding(bottom = 12.dp)
+                    )
                 }
             }
 
-            // Pre-Fight Intro Cinematic Dialogue Cut-In
-            if (engine.introCinematicTimer > 0f) {
-                PreFightIntroBanner(
-                    engine = engine,
-                    stage = stage,
-                    modifier = Modifier.align(Alignment.Center)
+            // BOTTOM ACTION CONTROLS (TCL 350x550 VIEWPORT)
+            BottomCombatBar(
+                engine = engine,
+                playerFighter = playerFighter,
+                smashPulse = smashPulse,
+                onMoveAhead = {
+                    // Round 30px Right Arrow Button on Bottom Left (No up/down/left needed)
+                    soundEngine?.playSelect()
+                    if (showDialogueWindow) {
+                        if (isTyping) {
+                            currentTypedText = dialogueSequence[dialogueStep].third
+                            isTyping = false
+                        } else if (dialogueStep + 1 < dialogueSequence.size) {
+                            dialogueStep++
+                        } else {
+                            showDialogueWindow = false
+                        }
+                    } else {
+                        // Forward attack dash / step forward
+                        engine.onPlayerPunch()
+                    }
+                },
+                onFinalSmash = {
+                    // Spirit Animal Final Blow Melee Smash Attack Button on Bottom Right
+                    if (engine.player.superMeter >= 100f && !showSmashCinematic) {
+                        showSmashCinematic = true
+                        soundEngine?.playSpecial()
+                        soundEngine?.vibrate(25, 120)
+                        engine.onPlayerSpecial()
+                    }
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(64.dp)
+                    .background(SurfaceCard)
+                    .border(1.dp, BorderDark, RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp))
+                    .padding(horizontal = 10.dp, vertical = 6.dp)
+            )
+        }
+
+        // PAUSE & SETTINGS MODAL OVERLAY
+        if (isPaused) {
+            PauseSettingsModal(
+                masterVolume = masterVolume,
+                soundActive = soundActive,
+                hapticEnabled = hapticEnabled,
+                onVolumeChange = { masterVolume = it },
+                onToggleSound = { soundActive = soundEngine?.toggleSound() ?: true },
+                onToggleHaptic = { hapticEnabled = it },
+                onResume = { isPaused = false },
+                onRestart = {
+                    isPaused = false
+                    engine.player.hp = engine.player.maxHp
+                    engine.enemy.hp = engine.enemy.maxHp
+                    engine.player.superMeter = 100f
+                },
+                onQuit = {
+                    isPaused = false
+                    onExitToSelect()
+                }
+            )
+        }
+
+        // FINAL BLOW SPIRIT ANIMAL SMASH CINEMATIC MODAL
+        if (showSmashCinematic) {
+            FinalBlowSmashCinematicOverlay(
+                fighter = playerFighter,
+                onFinished = { showSmashCinematic = false }
+            )
+        }
+    }
+}
+
+@Composable
+fun SleekFightHud(
+    engine: FightEngine,
+    stage: Stage,
+    onPause: () -> Unit,
+    soundActive: Boolean,
+    onToggleSound: () -> Unit
+) {
+    val playerHpRatio = (engine.player.hp.toFloat() / engine.player.maxHp.toFloat().coerceAtLeast(1f)).coerceIn(0f, 1f)
+    val enemyHpRatio = (engine.enemy.hp.toFloat() / engine.enemy.maxHp.toFloat().coerceAtLeast(1f)).coerceIn(0f, 1f)
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(SurfaceCard)
+            .padding(horizontal = 8.dp, vertical = 6.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        // TOP LINE: Fighter Names, Timer & Pause
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Player Tag & Element
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(
+                    text = engine.playerFighter.avatarCode,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Black,
+                    color = engine.playerFighter.accentColor
+                )
+                Text(
+                    text = "${engine.playerFighter.elementSymbol} ${engine.playerFighter.name}",
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White
+                )
+            }
+
+            // Round Timer & Pause Button
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(6.dp))
+                        .background(Color(0xFF220010))
+                        .border(1.dp, TapoutGold, RoundedCornerShape(6.dp))
+                        .padding(horizontal = 6.dp, vertical = 2.dp)
+                ) {
+                    Text(
+                        text = "${engine.roundTimeSeconds.toInt()}",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Black,
+                        fontFamily = FontFamily.Monospace,
+                        color = if (engine.roundTimeSeconds < 10) TapoutBrightRed else TapoutGold
+                    )
+                }
+
+                IconButton(
+                    onClick = onPause,
+                    modifier = Modifier
+                        .size(28.dp)
+                        .clip(CircleShape)
+                        .background(Color(0xFF1E0012))
+                        .border(1.dp, BorderDark, CircleShape)
+                        .testTag("pause_button")
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Settings,
+                        contentDescription = "Pause / Settings",
+                        tint = TapoutGold,
+                        modifier = Modifier.size(15.dp)
+                    )
+                }
+            }
+
+            // Enemy Tag & Element
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(
+                    text = "${engine.enemyFighter.name} ${engine.enemyFighter.elementSymbol}",
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White
+                )
+                Text(
+                    text = engine.enemyFighter.avatarCode,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Black,
+                    color = engine.enemyFighter.accentColor
                 )
             }
         }
 
-        // SLEEK TOUCH CONTROLS (D-Pad & Attack Action cluster)
-        SleekTouchControls(
-            engine = engine,
-            specialGlow = specialGlow,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(160.dp)
-                .clip(RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp))
-                .background(BackgroundDark)
-                .border(
-                    width = 1.dp,
-                    color = Color(0x1AFFFFFF),
-                    shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
+        // HEALTH BARS
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Player HP
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .height(10.dp)
+                    .clip(RoundedCornerShape(4.dp))
+                    .background(Color(0xFF240010))
+                    .border(1.dp, Color(0x33FFFFFF), RoundedCornerShape(4.dp))
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth(playerHpRatio)
+                        .height(10.dp)
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(
+                            Brush.horizontalGradient(listOf(HudHpPlayerStart, HudHpPlayerEnd))
+                        )
                 )
-                .padding(horizontal = 12.dp, vertical = 8.dp)
-        )
+            }
+
+            // VS Emblem
+            Text(
+                text = "VS",
+                fontSize = 8.sp,
+                fontWeight = FontWeight.Black,
+                color = TapoutGold
+            )
+
+            // Enemy HP
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .height(10.dp)
+                    .clip(RoundedCornerShape(4.dp))
+                    .background(Color(0xFF240010))
+                    .border(1.dp, Color(0x33FFFFFF), RoundedCornerShape(4.dp))
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth(enemyHpRatio)
+                        .height(10.dp)
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(
+                            Brush.horizontalGradient(listOf(HudHpCpuEnd, HudHpCpuStart))
+                        )
+                )
+            }
+        }
+
+        // SUPER METER & SPIRIT ANIMAL STATUS BAR
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "P1 SPIRIT: ${engine.playerFighter.spiritAnimalSymbol} ${engine.playerFighter.spiritAnimal}",
+                fontSize = 7.5.sp,
+                fontWeight = FontWeight.Bold,
+                color = TapoutGold
+            )
+            Text(
+                text = "SUPER ${(engine.player.superMeter).toInt()}%",
+                fontSize = 7.5.sp,
+                fontWeight = FontWeight.Black,
+                fontFamily = FontFamily.Monospace,
+                color = if (engine.player.superMeter >= 100f) TapoutGold else TapoutNeonBlue
+            )
+            Text(
+                text = "RIVAL: ${engine.enemyFighter.spiritAnimalSymbol} ${engine.enemyFighter.spiritAnimal}",
+                fontSize = 7.5.sp,
+                fontWeight = FontWeight.Bold,
+                color = TapoutCrimson
+            )
+        }
     }
 }
 
@@ -266,1211 +499,520 @@ fun RealtimeComboOverlay(
     displayActive: Boolean,
     modifier: Modifier = Modifier
 ) {
-    AnimatedVisibility(
-        visible = displayActive,
-        enter = fadeIn() + scaleIn(spring(dampingRatio = 0.6f, stiffness = 400f)),
-        exit = fadeOut() + scaleOut(),
+    if (!displayActive || comboCount <= 1) return
+
+    Box(
         modifier = modifier
+            .clip(RoundedCornerShape(8.dp))
+            .background(Color(0xCC000000))
+            .border(1.dp, TapoutGold, RoundedCornerShape(8.dp))
+            .padding(horizontal = 8.dp, vertical = 4.dp)
     ) {
-        // Dynamic scale factor according to combo streak
-        val targetScale = when (comboTier) {
-            ComboTier.GODLIKE -> 1.35f
-            ComboTier.ULTRA -> 1.25f
-            ComboTier.MEGA -> 1.15f
-            ComboTier.GREAT -> 1.08f
-            ComboTier.NORMAL -> 1.0f
-            ComboTier.NONE -> 0.9f
-        }
-        val animScale by animateFloatAsState(targetValue = targetScale, label = "comboScale")
-
-        val badgeColors = when (comboTier) {
-            ComboTier.GODLIKE -> listOf(Color(0xFFFF0055), TapoutGold, Color(0xFFFF9900))
-            ComboTier.ULTRA -> listOf(TapoutCrimson, TapoutGold)
-            ComboTier.MEGA -> listOf(TapoutOrange, Color(0xFFFF3300))
-            ComboTier.GREAT -> listOf(TapoutNeonBlue, TapoutNeonPurple)
-            ComboTier.NORMAL -> listOf(TapoutNeonBlue.copy(alpha = 0.8f), Color(0xFF0055FF))
-            ComboTier.NONE -> listOf(Color.DarkGray, Color.Black)
-        }
-
-        val titleText = when (comboTier) {
-            ComboTier.GODLIKE -> "★ GODLIKE RAMPAGE! ★"
-            ComboTier.ULTRA -> "⚡ ULTRA COMBO! ⚡"
-            ComboTier.MEGA -> "🔥 MEGA STRIKE! 🔥"
-            ComboTier.GREAT -> "GREAT COMBO!"
-            ComboTier.NORMAL -> "COMBO!"
-            ComboTier.NONE -> ""
-        }
-
-        Box(
-            modifier = Modifier
-                .scale(animScale)
-                .shadow(
-                    elevation = if (comboTier >= ComboTier.MEGA) 12.dp else 4.dp,
-                    shape = RoundedCornerShape(10.dp),
-                    spotColor = badgeColors.first(),
-                    ambientColor = badgeColors.first()
-                )
-                .clip(RoundedCornerShape(10.dp))
-                .background(Brush.horizontalGradient(badgeColors))
-                .border(1.5.dp, Color.White.copy(alpha = 0.8f), RoundedCornerShape(10.dp))
-                .padding(horizontal = 10.dp, vertical = 4.dp)
-        ) {
-            Column(horizontalAlignment = Alignment.Start) {
-                Text(
-                    text = titleText,
-                    fontSize = 8.sp,
-                    fontWeight = FontWeight.Black,
-                    letterSpacing = 1.sp,
-                    color = Color.White
-                )
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        text = "$comboCount",
-                        fontSize = 20.sp,
-                        fontWeight = FontWeight.Black,
-                        fontFamily = FontFamily.Monospace,
-                        color = TapoutGold
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(
-                        text = "HITS",
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Black,
-                        fontStyle = FontStyle.Italic,
-                        color = Color.White
-                    )
-                }
-            }
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(
+                text = "$comboCount HITS!",
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Black,
+                fontFamily = FontFamily.Monospace,
+                color = TapoutGold
+            )
+            Text(
+                text = comboTier.name,
+                fontSize = 8.sp,
+                fontWeight = FontWeight.Bold,
+                color = TapoutBrightRed
+            )
         }
     }
 }
 
-@Composable
-fun PreFightIntroBanner(
+fun DrawScope.drawStageAndFighters(
     engine: FightEngine,
     stage: Stage,
+    frameTick: Int
+) {
+    val w = size.width
+    val h = size.height
+
+    // 1. Stage Background
+    drawRect(
+        brush = Brush.verticalGradient(
+            listOf(stage.skyTop, stage.skyBottom)
+        )
+    )
+
+    // Floor
+    val floorY = h * 0.72f
+    drawRect(
+        brush = Brush.verticalGradient(
+            listOf(stage.floorColor, stage.floorColor.copy(alpha = 0.8f))
+        ),
+        topLeft = Offset(0f, floorY),
+        size = Size(w, h - floorY)
+    )
+    drawLine(
+        color = stage.floorAccent,
+        start = Offset(0f, floorY),
+        end = Offset(w, floorY),
+        strokeWidth = 3f
+    )
+
+    // 2. Draw Fighters
+    drawFighterEntity(engine.player, engine.playerFighter, isPlayer = true, floorY = floorY, frameTick = frameTick)
+    drawFighterEntity(engine.enemy, engine.enemyFighter, isPlayer = false, floorY = floorY, frameTick = frameTick)
+}
+
+fun DrawScope.drawFighterEntity(
+    entity: FighterEntity,
+    fighter: Fighter,
+    isPlayer: Boolean,
+    floorY: Float,
+    frameTick: Int
+) {
+    val x = entity.x
+    val y = floorY - 50f + (entity.y - entity.groundY)
+    val width = 28f
+    val height = 48f
+
+    // Shadow
+    drawOval(
+        color = Color(0x66000000),
+        topLeft = Offset(x - 18f, floorY - 4f),
+        size = Size(36f, 8f)
+    )
+
+    // Body
+    val bodyColor = if (entity.hurtFlash > 0f) Color.White else fighter.themeColor
+    drawRoundRect(
+        color = bodyColor,
+        topLeft = Offset(x - width / 2f, y - height / 2f),
+        size = Size(width, height),
+        cornerRadius = CornerRadius(6f, 6f)
+    )
+
+    // Head
+    drawCircle(
+        color = fighter.accentColor,
+        center = Offset(x, y - height / 2f - 10f),
+        radius = 10f
+    )
+
+    // Elemental Aura Glow
+    drawCircle(
+        color = fighter.themeColor.copy(alpha = 0.35f),
+        center = Offset(x, y),
+        radius = 24f,
+        style = Stroke(width = 2f)
+    )
+
+    // Attack punch / kick limb extension
+    if (entity.state == ActionState.PUNCHING) {
+        val reach = if (isPlayer) 22f else -22f
+        drawLine(
+            color = TapoutGold,
+            start = Offset(x, y - 6f),
+            end = Offset(x + reach, y - 6f),
+            strokeWidth = 5f
+        )
+    } else if (entity.state == ActionState.KICKING) {
+        val reach = if (isPlayer) 24f else -24f
+        drawLine(
+            color = TapoutBrightRed,
+            start = Offset(x, y + 10f),
+            end = Offset(x + reach, y + 6f),
+            strokeWidth = 6f
+        )
+    }
+}
+
+@Composable
+fun StoryDialogueWindow(
+    speakerName: String,
+    speakerTitle: String,
+    dialogueText: String,
+    isTyping: Boolean,
+    onAdvance: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val timeLeft = engine.introCinematicTimer
-    val isReady = timeLeft <= 1.0f
-
     Box(
         modifier = modifier
-            .fillMaxWidth(0.92f)
-            .clip(RoundedCornerShape(16.dp))
-            .background(Color(0xE60A000A))
-            .border(1.5.dp, TapoutGold, RoundedCornerShape(16.dp))
-            .padding(14.dp)
+            .clip(RoundedCornerShape(12.dp))
+            .background(Color(0xF0100010))
+            .border(1.5.dp, TapoutGold, RoundedCornerShape(12.dp))
+            .shadow(elevation = 12.dp, shape = RoundedCornerShape(12.dp), spotColor = TapoutGold)
+            .pointerInput(Unit) {
+                detectTapGestures { onAdvance() }
+            }
+            .padding(10.dp)
+            .testTag("story_dialogue_window")
     ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            // Stage Tag
-            Text(
-                text = "STAGE ${stage.stageNumber}: ${stage.name}",
-                fontSize = 10.sp,
-                fontWeight = FontWeight.Bold,
-                letterSpacing = 1.5.sp,
-                color = stage.floorAccent
-            )
-
-            // Versus Title Row
+        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = engine.player.fighter.name,
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Black,
-                        color = engine.player.fighter.themeColor
-                    )
-                    Text(
-                        text = "\"${engine.player.fighter.introQuote}\"",
-                        fontSize = 9.sp,
-                        fontStyle = FontStyle.Italic,
-                        color = Color.White.copy(alpha = 0.85f),
-                        maxLines = 2
-                    )
-                }
-
-                Box(
-                    modifier = Modifier
-                        .padding(horizontal = 6.dp)
-                        .clip(CircleShape)
-                        .background(TapoutCrimson)
-                        .padding(horizontal = 8.dp, vertical = 2.dp)
-                ) {
-                    Text("VS", fontSize = 11.sp, fontWeight = FontWeight.Black, color = Color.White)
-                }
-
-                Column(
-                    modifier = Modifier.weight(1f),
-                    horizontalAlignment = Alignment.End
-                ) {
-                    Text(
-                        text = engine.enemy.fighter.name,
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Black,
-                        color = engine.enemy.fighter.themeColor
-                    )
-                    Text(
-                        text = "\"${engine.enemy.fighter.introQuote}\"",
-                        fontSize = 9.sp,
-                        fontStyle = FontStyle.Italic,
-                        textAlign = TextAlign.End,
-                        color = Color.White.copy(alpha = 0.85f),
-                        maxLines = 2
-                    )
-                }
-            }
-
-            // Ready / Fight Callout
-            Text(
-                text = if (isReady) "★ FIGHT! ★" else "ROUND 1 - READY!",
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Black,
-                letterSpacing = 2.sp,
-                color = if (isReady) TapoutBrightRed else TapoutGold
-            )
-        }
-    }
-}
-
-@Composable
-fun SleekFightHud(
-    engine: FightEngine,
-    stage: Stage,
-    onExit: () -> Unit,
-    soundActive: Boolean,
-    onToggleSound: () -> Unit
-) {
-    val playerHpPct = (engine.player.hp.toFloat() / engine.player.maxHp).coerceIn(0f, 1f)
-    val enemyHpPct = (engine.enemy.hp.toFloat() / engine.enemy.maxHp).coerceIn(0f, 1f)
-    val playerHpInt = (playerHpPct * 100).toInt()
-    val enemyHpInt = (enemyHpPct * 100).toInt()
-
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(
-                Brush.verticalGradient(
-                    colors = listOf(Color(0xEE000000), Color(0x00000000))
-                )
-            )
-            .padding(horizontal = 10.dp, vertical = 4.dp)
-    ) {
-        // Quick control utility row
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            IconButton(
-                onClick = onExit,
-                modifier = Modifier.size(28.dp).testTag("exit_fight_button")
-            ) {
-                Icon(
-                    imageVector = Icons.Default.ArrowBack,
-                    contentDescription = "Exit to Select",
-                    tint = Color(0x99FFFFFF),
-                    modifier = Modifier.size(16.dp)
-                )
-            }
-
-            Text(
-                text = "STAGE ${stage.stageNumber} • ${stage.name}",
-                fontSize = 8.sp,
-                fontWeight = FontWeight.Bold,
-                letterSpacing = 1.sp,
-                color = Color(0x99FFFFFF)
-            )
-
-            IconButton(
-                onClick = onToggleSound,
-                modifier = Modifier.size(28.dp)
-            ) {
-                Icon(
-                    imageVector = if (soundActive) Icons.Default.VolumeUp else Icons.Default.VolumeOff,
-                    contentDescription = "Toggle Audio",
-                    tint = if (soundActive) TapoutOrange else Color(0x66FFFFFF),
-                    modifier = Modifier.size(16.dp)
-                )
-            }
-        }
-
-        // HUD Main Row with Player HP, Circular Timer, CPU HP
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 4.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            // Player 1 HP Column
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(2.dp)
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.Bottom
-                ) {
-                    Text(
-                        text = "P1 ${engine.player.fighter.name.uppercase()}",
-                        fontSize = 9.sp,
-                        fontWeight = FontWeight.Bold,
-                        letterSpacing = 0.5.sp,
-                        color = TapoutCrimson
-                    )
-                    Text(
-                        text = "$playerHpInt%",
-                        fontSize = 9.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = Color(0x99FFFFFF)
-                    )
-                }
-
-                // Health Bar Pill
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(9.dp)
-                        .clip(RoundedCornerShape(50))
-                        .background(Color(0xFF1A0008))
-                        .border(1.dp, Color(0x26FFFFFF), RoundedCornerShape(50))
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth(playerHpPct)
-                            .height(9.dp)
-                            .clip(RoundedCornerShape(50))
-                            .background(
-                                Brush.horizontalGradient(
-                                    listOf(HudHpPlayerStart, HudHpPlayerEnd)
-                                )
-                            )
-                    )
-                }
-
-                // Super Meter Line
-                val playerSpPct = (engine.player.superMeter / 100f).coerceIn(0f, 1f)
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(4.dp)
-                        .clip(RoundedCornerShape(50))
-                        .background(Color(0xFF140010))
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth(playerSpPct)
-                            .height(4.dp)
-                            .clip(RoundedCornerShape(50))
-                            .background(
-                                if (playerSpPct >= 1f) Brush.horizontalGradient(listOf(TapoutGold, TapoutBrightRed))
-                                else Brush.horizontalGradient(listOf(TapoutNeonBlue, TapoutNeonPurple))
-                            )
-                    )
-                }
-            }
-
-            // Circular Glowing Timer Hub
-            Box(
-                modifier = Modifier
-                    .size(42.dp)
-                    .clip(CircleShape)
-                    .background(Color(0x99000000))
-                    .border(2.dp, TapoutGold, CircleShape)
-                    .shadow(elevation = 8.dp, shape = CircleShape, ambientColor = TapoutGold, spotColor = TapoutGold),
-                contentAlignment = Alignment.Center
-            ) {
                 Text(
-                    text = engine.roundTimeSeconds.toInt().toString(),
-                    fontSize = 17.sp,
+                    text = speakerName,
+                    fontSize = 11.sp,
                     fontWeight = FontWeight.Black,
                     fontFamily = FontFamily.Monospace,
-                    color = if (engine.roundTimeSeconds <= 10) TapoutBrightRed else TapoutGold
+                    color = TapoutGold
+                )
+                Text(
+                    text = speakerTitle,
+                    fontSize = 7.5.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = TapoutNeonBlue
                 )
             }
 
-            // CPU Opponent HP Column
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(2.dp)
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(6.dp))
+                    .background(Color(0x55000000))
+                    .padding(8.dp)
             ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.Bottom
-                ) {
-                    Text(
-                        text = "$enemyHpInt%",
-                        fontSize = 9.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = Color(0x99FFFFFF)
-                    )
-                    Text(
-                        text = "CPU ${engine.enemy.fighter.name.uppercase()}",
-                        fontSize = 9.sp,
-                        fontWeight = FontWeight.Bold,
-                        letterSpacing = 0.5.sp,
-                        color = Color(0xFF94A3B8)
-                    )
-                }
-
-                // Health Bar Pill (Opponent)
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(9.dp)
-                        .clip(RoundedCornerShape(50))
-                        .background(Color(0xFF1A0008))
-                        .border(1.dp, Color(0x26FFFFFF), RoundedCornerShape(50))
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth(enemyHpPct)
-                            .height(9.dp)
-                            .align(Alignment.CenterEnd)
-                            .clip(RoundedCornerShape(50))
-                            .background(
-                                Brush.horizontalGradient(
-                                    listOf(HudHpCpuStart, HudHpCpuEnd)
-                                )
-                            )
-                    )
-                }
-
-                // Super Meter Line (Opponent)
-                val enemySpPct = (engine.enemy.superMeter / 100f).coerceIn(0f, 1f)
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(4.dp)
-                        .clip(RoundedCornerShape(50))
-                        .background(Color(0xFF140010))
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth(enemySpPct)
-                            .height(4.dp)
-                            .align(Alignment.CenterEnd)
-                            .clip(RoundedCornerShape(50))
-                            .background(
-                                if (enemySpPct >= 1f) Brush.horizontalGradient(listOf(TapoutGold, TapoutBrightRed))
-                                else Brush.horizontalGradient(listOf(TapoutBrightRed, TapoutOrange))
-                            )
-                    )
-                }
-            }
-        }
-    }
-}
-
-fun DrawScope.drawStageAndFighters(engine: FightEngine, stage: Stage, tick: Int) {
-    val canvasW = size.width
-    val canvasH = size.height
-    val scaleX = canvasW / engine.arenaWidth
-    val scaleY = canvasH / engine.arenaHeight
-
-    // Screen Shake
-    val shakeOffset = if (engine.screenShake > 0f) {
-        val amp = engine.screenShake
-        Offset(
-            (sin(tick * 1.5f) * amp).toFloat(),
-            (sin(tick * 2.2f) * amp * 0.5f).toFloat()
-        )
-    } else Offset.Zero
-
-    // 1. Stage Sky Backdrop
-    drawRect(
-        brush = Brush.verticalGradient(
-            colors = listOf(stage.skyTop, stage.skyBottom),
-            startY = 0f,
-            endY = canvasH * 0.75f
-        )
-    )
-
-    // Stage Specific Thematic Background Elements (Stages 1 through 9)
-    when (stage.id) {
-        "stage1" -> { // Kyoto Cherry Shadows (Pagoda & Sakura petals)
-            // Distant Moon
-            drawCircle(
-                color = Color(0xCCFFEEDD),
-                center = Offset(canvasW * 0.78f, canvasH * 0.25f),
-                radius = 24f * scaleX
-            )
-            // Pagoda Roof Silhouette
-            val path = Path().apply {
-                moveTo(canvasW * 0.2f, canvasH * 0.55f)
-                lineTo(canvasW * 0.35f, canvasH * 0.38f)
-                lineTo(canvasW * 0.5f, canvasH * 0.55f)
-                close()
-            }
-            drawPath(path, color = Color(0x33000000))
-            // Falling Sakura Blossom Particles
-            for (i in 0 until 8) {
-                val sx = ((i * 45f + tick * (1.2f + i * 0.2f)) % canvasW)
-                val sy = ((i * 30f + tick * (0.8f + i * 0.1f)) % (canvasH * 0.7f))
-                drawCircle(color = Color(0x80FF70A0), center = Offset(sx, sy), radius = 3f * scaleX)
-            }
-        }
-        "stage2" -> { // Neo Tokyo Skyline (Cyber Skyscrapers & Neon Billboards)
-            for (i in 0 until 5) {
-                val bx = i * (canvasW / 5)
-                val bh = (canvasH * 0.3f) + (i % 3) * 35f
-                drawRect(
-                    color = Color(0x44001428),
-                    topLeft = Offset(bx + 4f, canvasH * 0.75f - bh),
-                    size = Size(canvasW / 5 - 8f, bh)
-                )
-                // Glowing Neon signs
-                drawRect(
-                    color = if (i % 2 == 0) TapoutNeonBlue.copy(alpha = 0.6f) else TapoutCrimson.copy(alpha = 0.6f),
-                    topLeft = Offset(bx + 12f, canvasH * 0.75f - bh + 15f),
-                    size = Size(14f, 40f)
+                Text(
+                    text = dialogueText,
+                    fontSize = 9.sp,
+                    lineHeight = 13.sp,
+                    color = Color.White
                 )
             }
-        }
-        "stage3" -> { // Brooklyn Brick Alley (Street Lamps & Brick Texture)
-            drawRect(
-                color = Color(0x22331400),
-                topLeft = Offset(0f, canvasH * 0.2f),
-                size = Size(canvasW, canvasH * 0.55f)
-            )
-            // Warm Street Lamp
-            drawCircle(
-                brush = Brush.radialGradient(
-                    listOf(TapoutOrange.copy(alpha = 0.5f), Color.Transparent),
-                    center = Offset(canvasW * 0.85f, canvasH * 0.35f),
-                    radius = 50f * scaleX
-                ),
-                center = Offset(canvasW * 0.85f, canvasH * 0.35f),
-                radius = 50f * scaleX
-            )
-        }
-        "stage4" -> { // Imperial Rome Coliseum (Pillars & Torch Fire)
-            val pillarCount = 6
-            val pillarSpacing = canvasW / (pillarCount - 1)
-            for (i in 0 until pillarCount) {
-                val px = i * pillarSpacing + shakeOffset.x * 0.3f
-                drawRect(
-                    color = Color(0x33441020),
-                    topLeft = Offset(px - 10f, 20f),
-                    size = Size(20f, canvasH * 0.65f)
-                )
-                val flameAnim = sin(tick * 0.2f + i * 1.3f) * 3f
-                drawCircle(
-                    brush = Brush.radialGradient(
-                        colors = listOf(TapoutGold.copy(alpha = 0.6f), TapoutOrange.copy(alpha = 0.2f), Color.Transparent),
-                        center = Offset(px, 45f + flameAnim),
-                        radius = 22f
-                    ),
-                    center = Offset(px, 45f + flameAnim),
-                    radius = 22f
-                )
-            }
-        }
-        "stage5" -> { // Quantum Nexus Void (Time Rift Swirl & Chrono Shards)
-            drawCircle(
-                brush = Brush.radialGradient(
-                    colors = listOf(TapoutNeonPurple.copy(alpha = 0.7f), TapoutNeonBlue.copy(alpha = 0.3f), Color.Transparent),
-                    center = Offset(canvasW * 0.5f, canvasH * 0.4f),
-                    radius = 90f * scaleX
-                ),
-                center = Offset(canvasW * 0.5f, canvasH * 0.4f),
-                radius = 90f * scaleX
-            )
-        }
-        "stage6" -> { // Crimson Torii Shrine (Layered Torii Gates)
-            for (i in 0 until 3) {
-                val tScale = 0.5f + i * 0.25f
-                val ty = canvasH * 0.35f + i * 25f
-                drawLine(
-                    color = TapoutBrightRed.copy(alpha = 0.4f + i * 0.2f),
-                    start = Offset(canvasW * 0.5f - 60f * tScale, ty),
-                    end = Offset(canvasW * 0.5f + 60f * tScale, ty),
-                    strokeWidth = 6f * tScale
-                )
-            }
-        }
-        "stage7" -> { // Hex Containment Lab (Laser Grid & Cyber Hex)
-            for (i in 0 until 6) {
-                val lx = i * (canvasW / 5)
-                drawLine(
-                    color = Color(0x3300FFCC),
-                    start = Offset(lx, 0f),
-                    end = Offset(lx, canvasH * 0.75f),
-                    strokeWidth = 1.5f
-                )
-            }
-        }
-        "stage8" -> { // Volcanic Crucible (Molten Lava Falls & Magma Glow)
-            drawCircle(
-                brush = Brush.radialGradient(
-                    listOf(Color(0x80FF4500), Color.Transparent),
-                    center = Offset(canvasW * 0.5f, canvasH * 0.65f),
-                    radius = 110f * scaleX
-                ),
-                center = Offset(canvasW * 0.5f, canvasH * 0.65f),
-                radius = 110f * scaleX
-            )
-        }
-        "stage9" -> { // Celestial Pantheon (Golden Olympus Summit & Constellations)
-            drawCircle(
-                brush = Brush.radialGradient(
-                    listOf(Color(0x60FFE066), Color.Transparent),
-                    center = Offset(canvasW * 0.5f, canvasH * 0.35f),
-                    radius = 100f * scaleX
-                ),
-                center = Offset(canvasW * 0.5f, canvasH * 0.35f),
-                radius = 100f * scaleX
-            )
-        }
-    }
 
-    // 2. Arena Floor
-    val groundY = 240f * scaleY + shakeOffset.y
-    drawRect(
-        brush = Brush.verticalGradient(
-            colors = listOf(stage.floorColor, Color(0xFF080004)),
-            startY = groundY,
-            endY = canvasH
-        ),
-        topLeft = Offset(0f, groundY),
-        size = Size(canvasW, canvasH - groundY)
-    )
-
-    // Floor Divider Line & Accents
-    drawLine(
-        color = stage.floorAccent.copy(alpha = 0.75f),
-        start = Offset(0f, groundY),
-        end = Offset(canvasW, groundY),
-        strokeWidth = 2.5f
-    )
-
-    for (i in 0 until 9) {
-        val gx = i * (canvasW / 8)
-        drawLine(
-            color = stage.floorAccent.copy(alpha = 0.18f),
-            start = Offset(gx, groundY),
-            end = Offset(gx + (i - 4) * 14f, canvasH),
-            strokeWidth = 1f
-        )
-    }
-
-    // 3. Draw Fighters
-    drawFighterFigure(engine.player, scaleX, scaleY, shakeOffset, tick)
-    drawFighterFigure(engine.enemy, scaleX, scaleY, shakeOffset, tick)
-
-    // 4. Draw Special Projectiles
-    for (wave in engine.specialWaves) {
-        val wx = wave.x * scaleX + shakeOffset.x
-        val wy = wave.y * scaleY + shakeOffset.y
-        drawCircle(
-            brush = Brush.radialGradient(
-                listOf(Color.White, wave.color, Color.Transparent),
-                center = Offset(wx, wy),
-                radius = wave.radius * scaleX * 1.6f
-            ),
-            center = Offset(wx, wy),
-            radius = wave.radius * scaleX * 1.6f
-        )
-        drawCircle(
-            color = Color.White,
-            center = Offset(wx, wy),
-            radius = wave.radius * scaleX * 0.5f
-        )
-    }
-
-    // 5. Draw Combat Particles
-    for (p in engine.particles) {
-        val px = p.x * scaleX + shakeOffset.x
-        val py = p.y * scaleY + shakeOffset.y
-        drawCircle(
-            color = p.color.copy(alpha = p.life.coerceIn(0f, 1f)),
-            center = Offset(px, py),
-            radius = p.size * p.life
-        )
-    }
-}
-
-fun DrawScope.drawFighterFigure(
-    entity: FighterEntity,
-    scaleX: Float,
-    scaleY: Float,
-    shakeOffset: Offset,
-    tick: Int
-) {
-    val fx = entity.x * scaleX + shakeOffset.x
-    val fy = entity.y * scaleY + shakeOffset.y
-    val dir = if (entity.isFacingRight) 1f else -1f
-    val fColor = entity.fighter.themeColor
-    val accColor = entity.fighter.accentColor
-    val isHit = entity.hurtFlash > 0f || entity.state == ActionState.HURT
-    val isSuper = entity.state == ActionState.SPECIAL
-    val isKnockedOut = entity.state == ActionState.KO || entity.hp <= 0
-
-    // Ground Shadow Oval
-    drawOval(
-        color = Color(0x66000000),
-        topLeft = Offset(fx - 24f * scaleX, 238f * scaleY - 4f + shakeOffset.y),
-        size = Size(48f * scaleX, 10f * scaleY)
-    )
-
-    // Super Aura Glow
-    if (isSuper) {
-        drawCircle(
-            brush = Brush.radialGradient(
-                colors = listOf(accColor.copy(alpha = 0.6f), fColor.copy(alpha = 0.2f), Color.Transparent),
-                center = Offset(fx, fy - 35f * scaleY),
-                radius = 50f * scaleX
-            ),
-            center = Offset(fx, fy - 35f * scaleY),
-            radius = 50f * scaleX
-        )
-    }
-
-    val bodyColor = when {
-        isHit -> Color.White
-        isKnockedOut -> Color(0xFF666666)
-        else -> fColor
-    }
-
-    if (isKnockedOut) {
-        drawRoundRect(
-            color = bodyColor,
-            topLeft = Offset(fx - 30f * scaleX, fy - 14f * scaleY),
-            size = Size(60f * scaleX, 14f * scaleY),
-            cornerRadius = CornerRadius(6f, 6f)
-        )
-        drawCircle(
-            color = accColor,
-            center = Offset(fx + dir * 28f * scaleX, fy - 8f * scaleY),
-            radius = 9f * scaleX
-        )
-        return
-    }
-
-    val idleBob = sin(tick * 0.15f + if (entity.isFacingRight) 0f else 2f) * 2.5f * scaleY
-    val headY = fy - 62f * scaleY + idleBob
-    val torsoY = fy - 48f * scaleY + idleBob
-
-    // Torso Body
-    drawRoundRect(
-        color = bodyColor,
-        topLeft = Offset(fx - 12f * scaleX, torsoY),
-        size = Size(24f * scaleX, 32f * scaleY),
-        cornerRadius = CornerRadius(6f, 6f)
-    )
-
-    // Accent Belt / Chest Insignia
-    drawRoundRect(
-        color = accColor,
-        topLeft = Offset(fx - 10f * scaleX, torsoY + 14f * scaleY),
-        size = Size(20f * scaleX, 5f * scaleY),
-        cornerRadius = CornerRadius(2f, 2f)
-    )
-
-    // Head
-    drawCircle(
-        color = if (isHit) Color.White else accColor,
-        center = Offset(fx + dir * 2f * scaleX, headY),
-        radius = 11f * scaleX
-    )
-
-    // Visor / Mask / Eyes
-    drawLine(
-        color = if (entity.isFacingRight) TapoutBrightRed else TapoutNeonBlue,
-        start = Offset(fx + dir * 2f * scaleX, headY - 1f),
-        end = Offset(fx + dir * 11f * scaleX, headY - 1f),
-        strokeWidth = 3f * scaleX
-    )
-
-    // Legs
-    when (entity.state) {
-        ActionState.KICKING -> {
-            drawLine(
-                color = bodyColor,
-                start = Offset(fx, torsoY + 28f * scaleY),
-                end = Offset(fx + dir * 36f * scaleX, torsoY + 6f * scaleY),
-                strokeWidth = 7f * scaleX
-            )
-            drawLine(
-                color = bodyColor,
-                start = Offset(fx - dir * 4f * scaleX, torsoY + 28f * scaleY),
-                end = Offset(fx - dir * 6f * scaleX, fy),
-                strokeWidth = 6f * scaleX
-            )
-            drawCircle(
-                color = TapoutGold.copy(alpha = 0.7f),
-                center = Offset(fx + dir * 36f * scaleX, torsoY + 6f * scaleY),
-                radius = 8f * scaleX
-            )
-        }
-        else -> {
-            val legAnim = if (entity.state == ActionState.WALKING) sin(tick * 0.3f) * 8f * scaleX else 4f * scaleX
-            drawLine(
-                color = bodyColor,
-                start = Offset(fx - 5f * scaleX, torsoY + 28f * scaleY),
-                end = Offset(fx - 8f * scaleX - legAnim, fy),
-                strokeWidth = 6f * scaleX
-            )
-            drawLine(
-                color = bodyColor,
-                start = Offset(fx + 5f * scaleX, torsoY + 28f * scaleY),
-                end = Offset(fx + 8f * scaleX + legAnim, fy),
-                strokeWidth = 6f * scaleX
-            )
-        }
-    }
-
-    // Arms
-    when (entity.state) {
-        ActionState.PUNCHING -> {
-            drawLine(
-                color = if (isHit) Color.White else accColor,
-                start = Offset(fx, torsoY + 8f * scaleY),
-                end = Offset(fx + dir * 34f * scaleX, torsoY + 8f * scaleY),
-                strokeWidth = 7f * scaleX
-            )
-            drawCircle(
-                color = TapoutBrightRed,
-                center = Offset(fx + dir * 34f * scaleX, torsoY + 8f * scaleY),
-                radius = 6f * scaleX
-            )
-        }
-        ActionState.BLOCKING -> {
-            drawRoundRect(
-                color = TapoutNeonBlue.copy(alpha = 0.85f),
-                topLeft = Offset(fx + dir * 8f * scaleX, torsoY - 2f * scaleY),
-                size = Size(8f * scaleX, 26f * scaleY),
-                cornerRadius = CornerRadius(4f, 4f)
-            )
-            drawArc(
-                color = TapoutNeonBlue.copy(alpha = 0.5f),
-                startAngle = if (entity.isFacingRight) -60f else 120f,
-                sweepAngle = 120f,
-                useCenter = false,
-                topLeft = Offset(fx + dir * 6f * scaleX, torsoY - 14f * scaleY),
-                size = Size(20f * scaleX, 48f * scaleY),
-                style = Stroke(width = 3f * scaleX)
-            )
-        }
-        ActionState.SPECIAL -> {
-            drawLine(
+            Text(
+                text = if (isTyping) "TAP TO SKIP ▶" else "TAP TO ADVANCE ▶",
+                fontSize = 7.sp,
+                fontWeight = FontWeight.Bold,
+                fontFamily = FontFamily.Monospace,
                 color = TapoutGold,
-                start = Offset(fx, torsoY + 6f * scaleY),
-                end = Offset(fx + dir * 28f * scaleX, torsoY - 4f * scaleY),
-                strokeWidth = 7f * scaleX
-            )
-            drawCircle(
-                brush = Brush.radialGradient(
-                    listOf(Color.White, TapoutGold, Color.Transparent),
-                    center = Offset(fx + dir * 28f * scaleX, torsoY - 4f * scaleY),
-                    radius = 16f * scaleX
-                ),
-                center = Offset(fx + dir * 28f * scaleX, torsoY - 4f * scaleY),
-                radius = 16f * scaleX
-            )
-        }
-        else -> {
-            drawLine(
-                color = bodyColor,
-                start = Offset(fx - dir * 4f * scaleX, torsoY + 8f * scaleY),
-                end = Offset(fx + dir * 14f * scaleX, torsoY + 12f * scaleY),
-                strokeWidth = 5f * scaleX
-            )
-            drawCircle(
-                color = accColor,
-                center = Offset(fx + dir * 14f * scaleX, torsoY + 12f * scaleY),
-                radius = 4.5f * scaleX
+                textAlign = TextAlign.End,
+                modifier = Modifier.fillMaxWidth()
             )
         }
     }
 }
 
 @Composable
-fun SleekTouchControls(
+fun BottomCombatBar(
     engine: FightEngine,
-    specialGlow: Float,
+    playerFighter: Fighter,
+    smashPulse: Float,
+    onMoveAhead: () -> Unit,
+    onFinalSmash: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val smashReady = engine.player.superMeter >= 100f
+
     Row(
         modifier = modifier,
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // 1. LEFT: SLEEK D-PAD
+        // BOTTOM LEFT: Round 30px Right Arrow Button to Move Ahead (No up/down/left needed)
         Box(
             modifier = Modifier
-                .size(138.dp)
-                .padding(2.dp),
+                .size(30.dp)
+                .clip(CircleShape)
+                .background(
+                    Brush.radialGradient(
+                        colors = listOf(Color(0xFF24001A), Color(0xFF0A0008))
+                    )
+                )
+                .border(1.5.dp, TapoutNeonBlue, CircleShape)
+                .shadow(elevation = 6.dp, shape = CircleShape, spotColor = TapoutNeonBlue, ambientColor = TapoutNeonBlue)
+                .pointerInput(Unit) {
+                    detectTapGestures { onMoveAhead() }
+                }
+                .testTag("btn_move_ahead_right_arrow"),
             contentAlignment = Alignment.Center
         ) {
-            Column(
-                modifier = Modifier.size(134.dp),
-                verticalArrangement = Arrangement.spacedBy(4.dp)
-            ) {
-                // Row 1: UP
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(1f),
-                    horizontalArrangement = Arrangement.Center
-                ) {
-                    SleekDPadButton(
-                        symbol = "▲",
-                        tag = "dpad_up",
-                        isPressed = engine.inputUp,
-                        onStateChanged = { engine.inputUp = it }
-                    )
+            Icon(
+                imageVector = Icons.Default.ArrowForward,
+                contentDescription = "Move Ahead",
+                tint = TapoutNeonBlue,
+                modifier = Modifier.size(16.dp)
+            )
+        }
+
+        // CENTER ATTACK BUTTONS (JAB & KICK)
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(Color(0xFF1E0012))
+                    .border(1.dp, TapoutOrange, RoundedCornerShape(8.dp))
+                .pointerInput(Unit) {
+                    detectTapGestures { engine.onPlayerPunch() }
                 }
+                    .padding(horizontal = 10.dp, vertical = 6.dp)
+                    .testTag("btn_punch"),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "👊 JAB",
+                    fontSize = 8.5.sp,
+                    fontWeight = FontWeight.Bold,
+                    fontFamily = FontFamily.Monospace,
+                    color = Color.White
+                )
+            }
 
-                // Row 2: LEFT, CENTER DOT, RIGHT
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(1f),
-                    horizontalArrangement = Arrangement.spacedBy(4.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    SleekDPadButton(
-                        symbol = "◀",
-                        tag = "dpad_left",
-                        modifier = Modifier.weight(1f),
-                        isPressed = engine.inputLeft,
-                        onStateChanged = { engine.inputLeft = it }
-                    )
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(Color(0xFF1E0012))
+                    .border(1.dp, TapoutGold, RoundedCornerShape(8.dp))
+                .pointerInput(Unit) {
+                    detectTapGestures { engine.onPlayerKick() }
+                }
+                    .padding(horizontal = 10.dp, vertical = 6.dp)
+                    .testTag("btn_kick"),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "🦵 KICK",
+                    fontSize = 8.5.sp,
+                    fontWeight = FontWeight.Bold,
+                    fontFamily = FontFamily.Monospace,
+                    color = Color.White
+                )
+            }
+        }
 
-                    Box(
-                        modifier = Modifier
-                            .size(38.dp)
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(Color.Black)
-                            .border(1.dp, Color(0x14FFFFFF), RoundedCornerShape(8.dp)),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(6.dp)
-                                .clip(CircleShape)
-                                .background(TapoutCrimson)
+        // BOTTOM RIGHT: Spirit Animal Final Blow Melee Smash Attack Button
+        Box(
+            modifier = Modifier
+                .height(34.dp)
+                .clip(RoundedCornerShape(17.dp))
+                .background(
+                    if (smashReady) {
+                        Brush.horizontalGradient(
+                            listOf(TapoutBrightRed.copy(alpha = smashPulse), TapoutGold.copy(alpha = smashPulse))
+                        )
+                    } else {
+                        Brush.horizontalGradient(
+                            listOf(Color(0xFF330010), Color(0xFF22000A))
                         )
                     }
-
-                    SleekDPadButton(
-                        symbol = "▶",
-                        tag = "dpad_right",
-                        modifier = Modifier.weight(1f),
-                        isPressed = engine.inputRight,
-                        onStateChanged = { engine.inputRight = it }
-                    )
+                )
+                .border(
+                    width = if (smashReady) 1.5.dp else 1.dp,
+                    color = if (smashReady) TapoutGold else Color(0x33FFFFFF),
+                    shape = RoundedCornerShape(17.dp)
+                )
+                .shadow(
+                    elevation = if (smashReady) 10.dp else 0.dp,
+                    shape = RoundedCornerShape(17.dp),
+                    spotColor = TapoutGold,
+                    ambientColor = TapoutBrightRed
+                )
+                .pointerInput(smashReady) {
+                    detectTapGestures { onFinalSmash() }
                 }
-
-                // Row 3: DOWN
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(1f),
-                    horizontalArrangement = Arrangement.Center
-                ) {
-                    SleekDPadButton(
-                        symbol = "▼",
-                        tag = "dpad_down",
-                        isPressed = engine.inputDown,
-                        onStateChanged = { engine.inputDown = it }
-                    )
-                }
+                .padding(horizontal = 8.dp)
+                .testTag("btn_final_smash"),
+            contentAlignment = Alignment.Center
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(3.dp)
+            ) {
+                Text(
+                    text = playerFighter.spiritAnimalSymbol,
+                    fontSize = 11.sp
+                )
+                Text(
+                    text = if (smashReady) "SPIRIT SMASH" else "CHARGING",
+                    fontSize = 7.5.sp,
+                    fontWeight = FontWeight.Black,
+                    fontFamily = FontFamily.Monospace,
+                    color = if (smashReady) Color.Black else Color.White.copy(alpha = 0.6f)
+                )
             }
         }
+    }
+}
 
-        // 2. RIGHT: SLEEK ATTACK BUTTONS
-        Column(
+@Composable
+fun PauseSettingsModal(
+    masterVolume: Float,
+    soundActive: Boolean,
+    hapticEnabled: Boolean,
+    onVolumeChange: (Float) -> Unit,
+    onToggleSound: () -> Unit,
+    onToggleHaptic: (Boolean) -> Unit,
+    onResume: () -> Unit,
+    onRestart: () -> Unit,
+    onQuit: () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0xD9000000))
+            .pointerInput(Unit) { detectTapGestures { } },
+        contentAlignment = Alignment.Center
+    ) {
+        Box(
             modifier = Modifier
-                .width(160.dp)
-                .height(138.dp),
-            verticalArrangement = Arrangement.spacedBy(6.dp)
+                .fillMaxWidth(0.88f)
+                .clip(RoundedCornerShape(16.dp))
+                .background(SurfaceCard)
+                .border(1.5.dp, BorderDark, RoundedCornerShape(16.dp))
+                .padding(14.dp)
         ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f),
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                // PUNCH (P)
-                SleekActionButton(
-                    label = "PUNCH",
-                    letter = "P",
-                    tag = "btn_punch",
-                    activeColor = TapoutOrange,
-                    modifier = Modifier.weight(1f),
-                    onTrigger = { engine.onPlayerPunch() }
+                Text(
+                    text = "⚙️ PAUSE & SETTINGS",
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Black,
+                    fontFamily = FontFamily.Monospace,
+                    color = TapoutGold
                 )
 
-                // KICK (K)
-                SleekActionButton(
-                    label = "KICK",
-                    letter = "K",
-                    tag = "btn_kick",
-                    activeColor = TapoutGold,
-                    modifier = Modifier.weight(1f),
-                    onTrigger = { engine.onPlayerKick() }
-                )
-            }
-
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f),
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
-            ) {
-                // BLOCK (B)
-                SleekHoldButton(
-                    label = "BLOCK",
-                    letter = "B",
-                    tag = "btn_block",
-                    activeColor = TapoutNeonBlue,
-                    modifier = Modifier.weight(1f),
-                    onStateChange = { engine.inputBlock = it }
-                )
-
-                // ULTRA / SPECIAL (S)
-                val specialReady = engine.player.superMeter >= 100f
-                SleekUltraButton(
-                    ready = specialReady,
-                    glowAlpha = specialGlow,
-                    modifier = Modifier.weight(1f),
-                    onTrigger = {
-                        if (specialReady) engine.onPlayerSpecial()
-                    }
-                )
-            }
-        }
-    }
-}
-
-@Composable
-fun SleekDPadButton(
-    symbol: String,
-    tag: String,
-    isPressed: Boolean,
-    modifier: Modifier = Modifier.size(38.dp),
-    onStateChanged: (Boolean) -> Unit
-) {
-    Box(
-        modifier = modifier
-            .clip(RoundedCornerShape(10.dp))
-            .background(if (isPressed) TapoutCrimson else SurfaceCard)
-            .border(1.dp, if (isPressed) TapoutBrightRed else Color(0x1AFFFFFF), RoundedCornerShape(10.dp))
-            .pointerInput(Unit) {
-                awaitPointerEventScope {
-                    while (true) {
-                        val event = awaitPointerEvent()
-                        when (event.type) {
-                            PointerEventType.Press -> onStateChanged(true)
-                            PointerEventType.Release, PointerEventType.Exit -> onStateChanged(false)
-                        }
-                    }
-                }
-            }
-            .testTag(tag),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(
-            text = symbol,
-            fontSize = 14.sp,
-            fontWeight = FontWeight.Bold,
-            color = if (isPressed) Color.White else Color(0x66FFFFFF)
-        )
-    }
-}
-
-@Composable
-fun SleekActionButton(
-    label: String,
-    letter: String,
-    tag: String,
-    activeColor: Color,
-    modifier: Modifier = Modifier,
-    onTrigger: () -> Unit
-) {
-    var pressed by remember { mutableStateOf(false) }
-
-    Box(
-        modifier = modifier
-            .fillMaxSize()
-            .clip(RoundedCornerShape(18.dp))
-            .background(if (pressed) activeColor.copy(alpha = 0.45f) else SurfaceCard)
-            .border(
-                1.dp,
-                if (pressed) activeColor else Color(0x1AFFFFFF),
-                RoundedCornerShape(18.dp)
-            )
-            .pointerInput(Unit) {
-                detectTapGestures(
-                    onPress = {
-                        pressed = true
-                        onTrigger()
-                        tryAwaitRelease()
-                        pressed = false
-                    }
-                )
-            }
-            .testTag(tag),
-        contentAlignment = Alignment.Center
-    ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
-        ) {
-            Text(
-                text = label,
-                fontSize = 8.sp,
-                fontWeight = FontWeight.Bold,
-                color = if (pressed) activeColor else Color(0x66FFFFFF),
-                letterSpacing = 0.5.sp
-            )
-            Text(
-                text = letter,
-                fontSize = 17.sp,
-                fontWeight = FontWeight.Black,
-                fontStyle = FontStyle.Italic,
-                color = if (pressed) Color.White else Color.White.copy(alpha = 0.9f)
-            )
-        }
-    }
-}
-
-@Composable
-fun SleekHoldButton(
-    label: String,
-    letter: String,
-    tag: String,
-    activeColor: Color,
-    modifier: Modifier = Modifier,
-    onStateChange: (Boolean) -> Unit
-) {
-    var pressed by remember { mutableStateOf(false) }
-
-    Box(
-        modifier = modifier
-            .fillMaxSize()
-            .clip(RoundedCornerShape(18.dp))
-            .background(if (pressed) activeColor.copy(alpha = 0.45f) else SurfaceCard)
-            .border(
-                1.dp,
-                if (pressed) activeColor else Color(0x1AFFFFFF),
-                RoundedCornerShape(18.dp)
-            )
-            .pointerInput(Unit) {
-                awaitPointerEventScope {
-                    while (true) {
-                        val event = awaitPointerEvent()
-                        when (event.type) {
-                            PointerEventType.Press -> {
-                                pressed = true
-                                onStateChange(true)
-                            }
-                            PointerEventType.Release, PointerEventType.Exit -> {
-                                pressed = false
-                                onStateChange(false)
-                            }
-                        }
-                    }
-                }
-            }
-            .testTag(tag),
-        contentAlignment = Alignment.Center
-    ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
-        ) {
-            Text(
-                text = label,
-                fontSize = 8.sp,
-                fontWeight = FontWeight.Bold,
-                color = if (pressed) activeColor else Color(0x66FFFFFF),
-                letterSpacing = 0.5.sp
-            )
-            Text(
-                text = letter,
-                fontSize = 17.sp,
-                fontWeight = FontWeight.Black,
-                fontStyle = FontStyle.Italic,
-                color = if (pressed) Color.White else Color.White.copy(alpha = 0.9f)
-            )
-        }
-    }
-}
-
-@Composable
-fun SleekUltraButton(
-    ready: Boolean,
-    glowAlpha: Float,
-    modifier: Modifier = Modifier,
-    onTrigger: () -> Unit
-) {
-    var pressed by remember { mutableStateOf(false) }
-
-    Box(
-        modifier = modifier
-            .fillMaxSize()
-            .clip(RoundedCornerShape(18.dp))
-            .background(
-                if (ready) {
-                    Brush.verticalGradient(
-                        listOf(TapoutCrimson.copy(alpha = glowAlpha), Color(0xFF8A0020).copy(alpha = glowAlpha))
+                // Volume Slider
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    Text(
+                        text = "Master Volume: ${(masterVolume * 100).toInt()}%",
+                        fontSize = 8.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White
                     )
-                } else if (pressed) {
-                    SolidColor(TapoutCrimson.copy(alpha = 0.3f))
-                } else {
-                    SolidColor(SurfaceCard)
+                    Slider(
+                        value = masterVolume,
+                        onValueChange = onVolumeChange,
+                        colors = SliderDefaults.colors(
+                            thumbColor = TapoutCrimson,
+                            activeTrackColor = TapoutCrimson
+                        ),
+                        modifier = Modifier.fillMaxWidth()
+                    )
                 }
-            )
-            .border(
-                width = if (ready) 1.5.dp else 1.dp,
-                color = if (ready) TapoutGold else Color(0x1AFFFFFF),
-                shape = RoundedCornerShape(18.dp)
-            )
-            .pointerInput(ready) {
-                detectTapGestures(
-                    onPress = {
-                        if (ready) {
-                            pressed = true
-                            onTrigger()
-                            tryAwaitRelease()
-                            pressed = false
-                        }
-                    }
-                )
+
+                // Sound Toggle
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("8-Bit Sound Effects", fontSize = 8.5.sp, color = Color.White)
+                    Switch(
+                        checked = soundActive,
+                        onCheckedChange = { onToggleSound() },
+                        colors = SwitchDefaults.colors(checkedThumbColor = TapoutGold, checkedTrackColor = TapoutCrimson)
+                    )
+                }
+
+                // Haptic Vibration Toggle
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("Haptic Feedback", fontSize = 8.5.sp, color = Color.White)
+                    Switch(
+                        checked = hapticEnabled,
+                        onCheckedChange = onToggleHaptic,
+                        colors = SwitchDefaults.colors(checkedThumbColor = TapoutGold, checkedTrackColor = TapoutCrimson)
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(4.dp))
+
+                // Actions
+                Button(
+                    onClick = onResume,
+                    colors = ButtonDefaults.buttonColors(containerColor = TapoutCrimson),
+                    modifier = Modifier.fillMaxWidth().height(36.dp)
+                ) {
+                    Text("RESUME BATTLE ▶", fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                }
+
+                Button(
+                    onClick = onRestart,
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2E0018)),
+                    modifier = Modifier.fillMaxWidth().height(34.dp)
+                ) {
+                    Text("RESTART ROUND 🔄", fontSize = 8.5.sp, color = Color.White)
+                }
+
+                Button(
+                    onClick = onQuit,
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF18000C)),
+                    modifier = Modifier.fillMaxWidth().height(34.dp)
+                ) {
+                    Text("MAIN MENU 🏠", fontSize = 8.5.sp, color = Color.White.copy(alpha = 0.8f))
+                }
             }
-            .testTag("btn_special"),
+        }
+    }
+}
+
+@Composable
+fun FinalBlowSmashCinematicOverlay(
+    fighter: Fighter,
+    onFinished: () -> Unit
+) {
+    LaunchedEffect(Unit) {
+        delay(2200)
+        onFinished()
+    }
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0xFA000000))
+            .pointerInput(Unit) { detectTapGestures { onFinished() } },
         contentAlignment = Alignment.Center
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.padding(16.dp)
         ) {
             Text(
-                text = if (ready) "ULTRA" else "SPECIAL",
-                fontSize = 8.sp,
-                fontWeight = FontWeight.Bold,
-                color = if (ready) Color.White.copy(alpha = 0.85f) else Color(0x44FFFFFF),
-                letterSpacing = 0.5.sp
-            )
-            Text(
-                text = "S",
-                fontSize = 17.sp,
+                text = "💥 FINAL BLOW MELEE FINISH 💥",
+                fontSize = 11.sp,
                 fontWeight = FontWeight.Black,
+                letterSpacing = 2.sp,
+                color = TapoutBrightRed
+            )
+
+            Text(
+                text = fighter.spiritAnimalSymbol,
+                fontSize = 48.sp
+            )
+
+            Text(
+                text = fighter.finalBlowMeleeSmashName,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Black,
+                fontFamily = FontFamily.Monospace,
+                color = TapoutGold,
+                textAlign = TextAlign.Center
+            )
+
+            Text(
+                text = "${fighter.elementSymbol} ${fighter.elementalState} × ${fighter.spiritAnimal}",
+                fontSize = 9.sp,
+                fontWeight = FontWeight.Bold,
+                color = TapoutNeonBlue
+            )
+
+            Text(
+                text = "\"${fighter.finalBlowSmashQuote}\"",
+                fontSize = 9.sp,
                 fontStyle = FontStyle.Italic,
-                color = if (ready) TapoutGold else Color(0x66FFFFFF)
+                color = Color.White,
+                textAlign = TextAlign.Center
             )
         }
     }

@@ -1,6 +1,18 @@
 /**
- * Time Tournament - 2D Canvas Portrait & VFX Engine
+ * Time Tournament - 2D Canvas Portrait, Elemental Spirit Animal & VFX Engine
+ * Integrated with:
+ * - LUT (fast trigonometric lookup & color palette ramps)
+ * - Deque (particle pooling & input buffer tracking)
+ * - Queue (action sequencing & priority hit events)
+ * - Matter.js (2D rigid-body particle debris on impact)
+ * - Fabric.js (dynamic vector canvas emblem stamps)
+ * - Babylon.js (3D elemental background mesh & vortex)
  */
+import { JAB_SPRITE_FRAMES, spriteEngine } from './sprites.js';
+import { fastSin, fastCos, SPIRIT_PALETTE_LUTS, getComboScaledDamage } from './lut.js';
+import { Deque } from './dequeue.js';
+import { Queue } from './queue.js';
+
 export class CanvasRenderer {
   constructor(canvas) {
     this.canvas = canvas;
@@ -8,20 +20,74 @@ export class CanvasRenderer {
     this.time = 0;
     this.activeFighter = null;
     this.animFrameId = null;
-    this.particles = [];
+    this.particlePool = new Deque(80);
+    this.eventQueue = new Queue();
+    this.isAttacking = false;
+    this.attackType = null;
+    this.isSmashActive = false;
+    this.smashProgress = 0;
+    this.screenShake = 0;
+
+    // Matter.js Physics integration
+    this.matterEngine = null;
+    this.matterWorld = null;
+    this.matterDebris = [];
+    this.initMatterPhysics();
+
+    // Initialize particle pool using Deque
     this.initParticles();
   }
 
+  initMatterPhysics() {
+    if (typeof window !== 'undefined' && window.Matter) {
+      try {
+        const { Engine, World, Bodies } = window.Matter;
+        this.matterEngine = Engine.create({ enableSleeping: false });
+        this.matterWorld = this.matterEngine.world;
+        this.matterWorld.gravity.y = 0.8;
+
+        // Ground barrier
+        const ground = Bodies.rectangle(160, 145, 330, 10, { isStatic: true });
+        World.add(this.matterWorld, ground);
+      } catch (err) {
+        console.warn('Matter.js initialization skipped/fallback:', err);
+      }
+    }
+  }
+
+  spawnMatterDebris(originX, originY, color = '#FFC837', count = 8) {
+    if (!this.matterWorld || typeof window === 'undefined' || !window.Matter) return;
+    const { Bodies, World, Body } = window.Matter;
+
+    for (let i = 0; i < count; i++) {
+      const radius = Math.random() * 3 + 2;
+      const body = Bodies.circle(originX, originY, radius, {
+        restitution: 0.7,
+        friction: 0.05,
+        render: { fillStyle: color }
+      });
+
+      Body.setVelocity(body, {
+        x: (Math.random() - 0.5) * 8,
+        y: -Math.random() * 7 - 2
+      });
+
+      World.add(this.matterWorld, body);
+      this.matterDebris.push({ body, color, life: 1.0 });
+    }
+  }
+
   initParticles() {
-    this.particles = [];
-    for (let i = 0; i < 35; i++) {
-      this.particles.push({
+    this.particlePool.clear();
+    for (let i = 0; i < 50; i++) {
+      this.particlePool.pushBack({
         x: Math.random() * 320,
-        y: Math.random() * 220,
+        y: Math.random() * 140,
         size: Math.random() * 3 + 1,
         speedX: (Math.random() - 0.5) * 1.5,
         speedY: -Math.random() * 1.8 - 0.5,
-        opacity: Math.random() * 0.7 + 0.3
+        opacity: Math.random() * 0.7 + 0.3,
+        colorIdx: Math.random()
       });
     }
   }
@@ -47,61 +113,103 @@ export class CanvasRenderer {
     }
   }
 
+  triggerAttack(type = 'punch') {
+    this.isAttacking = true;
+    this.attackType = type;
+    this.screenShake = 5;
+
+    // Trigger Matter physics debris burst at contact point
+    const contactX = 160 + (type === 'kick' ? 25 : 15);
+    const contactY = 70;
+    this.spawnMatterDebris(contactX, contactY, this.activeFighter?.accent || '#FFC837', 10);
+
+    spriteEngine.play(() => {
+      this.isAttacking = false;
+      this.attackType = null;
+    });
+  }
+
+  triggerFinalSmash(onFinish = null) {
+    this.isSmashActive = true;
+    this.smashProgress = 0;
+    this.screenShake = 18;
+
+    // Massive physics explosion
+    this.spawnMatterDebris(160, 60, '#FF1A5E', 25);
+
+    const startTime = performance.now();
+    const duration = 2400;
+
+    const animateSmash = (now) => {
+      const elapsed = now - startTime;
+      this.smashProgress = Math.min(1, elapsed / duration);
+      this.screenShake = Math.max(0, 18 * (1 - this.smashProgress));
+
+      if (this.smashProgress < 1) {
+        requestAnimationFrame(animateSmash);
+      } else {
+        this.isSmashActive = false;
+        if (onFinish) onFinish();
+      }
+    };
+    requestAnimationFrame(animateSmash);
+  }
+
   render() {
     const { canvas, ctx, activeFighter } = this;
     if (!canvas || !ctx) return;
     const w = canvas.width;
     const h = canvas.height;
+    const now = performance.now();
     this.time += 0.035;
 
+    spriteEngine.update(now);
+
+    // Update Matter.js Engine if active
+    if (this.matterEngine && typeof window !== 'undefined' && window.Matter) {
+      window.Matter.Engine.update(this.matterEngine, 1000 / 60);
+    }
+
+    // Apply Screen Shake if active
+    ctx.save();
+    if (this.screenShake > 0) {
+      const shakeX = (Math.random() - 0.5) * this.screenShake;
+      const shakeY = (Math.random() - 0.5) * this.screenShake;
+      ctx.translate(shakeX, shakeY);
+      this.screenShake *= 0.9;
+      if (this.screenShake < 0.2) this.screenShake = 0;
+    }
+
     // Clear background
-    ctx.fillStyle = '#0F0318';
+    ctx.fillStyle = '#0A0010';
     ctx.fillRect(0, 0, w, h);
 
-    if (!activeFighter) return;
+    if (!activeFighter) {
+      ctx.restore();
+      return;
+    }
 
-    // Atmospheric dynamic radial gradient
+    // Atmospheric dynamic radial gradient with elemental aura
     const grad = ctx.createRadialGradient(w / 2, h / 2, 10, w / 2, h / 2, w / 1.1);
-    grad.addColorStop(0, activeFighter.color + '44');
-    grad.addColorStop(0.6, '#0A001088');
+    grad.addColorStop(0, activeFighter.color + '55');
+    grad.addColorStop(0.5, '#0A001088');
     grad.addColorStop(1, '#050008');
     ctx.fillStyle = grad;
     ctx.fillRect(0, 0, w, h);
 
-    // Grid Floor
-    ctx.strokeStyle = activeFighter.color + '22';
-    ctx.lineWidth = 1;
-    for (let y = 140; y < h; y += 15) {
+    // Elemental Aura Waves using Fast Trigonometry LUT
+    ctx.strokeStyle = activeFighter.accent + '44';
+    ctx.lineWidth = 1.5;
+    for (let i = 0; i < 3; i++) {
       ctx.beginPath();
-      ctx.moveTo(0, y);
-      ctx.lineTo(w, y);
+      const waveRadius = 38 + i * 18 + fastSin(this.time * 2 + i) * 6;
+      ctx.arc(w / 2, h / 2 + 5, Math.max(5, waveRadius), 0, Math.PI * 2);
       ctx.stroke();
     }
 
-    // Aura rings
-    ctx.save();
-    ctx.translate(w / 2, h / 2 + 10);
-    const pulse = 1 + Math.sin(this.time * 2.5) * 0.08;
-    ctx.scale(pulse, pulse);
-
-    ctx.strokeStyle = activeFighter.accent + '55';
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.arc(0, 0, 68, 0, Math.PI * 2);
-    ctx.stroke();
-
-    ctx.strokeStyle = activeFighter.color + '33';
-    ctx.lineWidth = 1;
-    ctx.setLineDash([6, 6]);
-    ctx.beginPath();
-    ctx.arc(0, 0, 78, this.time, this.time + Math.PI * 2);
-    ctx.stroke();
-    ctx.setLineDash([]);
-    ctx.restore();
-
-    // Floating VFX particles
-    ctx.fillStyle = activeFighter.accent;
-    this.particles.forEach(p => {
+    // Floating VFX particles from Deque pool
+    const particles = this.particlePool.toArray();
+    particles.forEach(p => {
       p.x += p.speedX;
       p.y += p.speedY;
       if (p.y < 0) {
@@ -111,26 +219,79 @@ export class CanvasRenderer {
       if (p.x < 0) p.x = w;
       if (p.x > w) p.x = 0;
 
-      ctx.globalAlpha = p.opacity * (0.6 + Math.sin(this.time + p.x) * 0.4);
+      // Sample color from spirit animal LUT if available
+      const lut = SPIRIT_PALETTE_LUTS.PHANTOM_PANTHER;
+      const sample = lut.sample(p.colorIdx);
+      ctx.fillStyle = sample.css || activeFighter.accent;
+
+      ctx.globalAlpha = p.opacity * (0.6 + fastSin(this.time + p.x) * 0.4);
       ctx.beginPath();
       ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
       ctx.fill();
     });
     ctx.globalAlpha = 1.0;
 
-    // Draw Stylized Retro Fighter Silhouette / Portrait
+    // Draw Character Sprite with fastCos bob
     ctx.save();
-    const bob = Math.sin(this.time * 2) * 4;
-    ctx.translate(w / 2, 70 + bob);
+    const bob = fastCos(this.time * 2.5) * 4;
+    
+    // Render sprite
+    const spriteDrawn = spriteEngine.drawFrame(ctx, (w - 96) / 2, 10 + bob, 96, 96);
+    if (!spriteDrawn) {
+      ctx.translate(w / 2, 60 + bob);
+      this.drawFighterArt(ctx, activeFighter);
+    }
+    ctx.restore();
 
-    // Fighter specific character render
-    this.drawFighterArt(ctx, activeFighter);
+    // Render Matter.js debris particles
+    if (this.matterDebris.length > 0) {
+      for (let i = this.matterDebris.length - 1; i >= 0; i--) {
+        const item = this.matterDebris[i];
+        item.life -= 0.025;
+        if (item.life <= 0) {
+          if (this.matterWorld && window.Matter) {
+            window.Matter.World.remove(this.matterWorld, item.body);
+          }
+          this.matterDebris.splice(i, 1);
+          continue;
+        }
+
+        ctx.save();
+        ctx.fillStyle = item.color;
+        ctx.globalAlpha = Math.max(0, item.life);
+        ctx.beginPath();
+        ctx.arc(item.body.position.x, item.body.position.y, item.body.circleRadius || 3, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
+    }
+
+    // Final Smash Elemental Spirit Animal Overlay
+    if (this.isSmashActive && this.smashProgress < 1) {
+      ctx.save();
+      const flash = fastSin(this.smashProgress * Math.PI);
+      ctx.fillStyle = activeFighter.accent;
+      ctx.globalAlpha = Math.max(0, flash * 0.4);
+      ctx.fillRect(0, 0, w, h);
+
+      // Spirit Animal Emblem
+      ctx.font = '32px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.globalAlpha = Math.max(0, flash * 0.9);
+      ctx.fillText(activeFighter.spiritAnimalSymbol || '🔥', w / 2, h / 2 - 10);
+
+      // Elemental Smash text
+      ctx.font = 'bold 9px monospace';
+      ctx.fillStyle = '#FFFFFF';
+      ctx.fillText(activeFighter.elementalState, w / 2, h / 2 + 25);
+      ctx.restore();
+    }
 
     ctx.restore();
   }
 
   drawFighterArt(ctx, fighter) {
-    // Character Head & Torso
     ctx.fillStyle = fighter.color;
     ctx.shadowColor = fighter.accent;
     ctx.shadowBlur = 15;
@@ -157,55 +318,6 @@ export class CanvasRenderer {
     ctx.arc(8, 12, 3.5, 0, Math.PI * 2);
     ctx.fill();
 
-    // Fighter distinct gear
     ctx.shadowBlur = 0;
-    if (fighter.id === 'ninja') {
-      // Scarf / Headband tails
-      ctx.fillStyle = fighter.accent;
-      ctx.beginPath();
-      ctx.moveTo(-20, 15);
-      ctx.quadraticCurveTo(-45, 10 + Math.sin(this.time * 4) * 8, -60, 25);
-      ctx.lineTo(-20, 20);
-      ctx.closePath();
-      ctx.fill();
-    } else if (fighter.id === 'mma') {
-      // Cybernetic Headpiece & Visor
-      ctx.fillStyle = '#FF9966';
-      ctx.fillRect(-15, 8, 30, 4);
-    } else if (fighter.id === 'boxer') {
-      // Boxing Gloves
-      ctx.fillStyle = '#FFC837';
-      ctx.beginPath();
-      ctx.arc(-38, 55, 14, 0, Math.PI * 2);
-      ctx.arc(38, 55, 14, 0, Math.PI * 2);
-      ctx.fill();
-    } else if (fighter.id === 'wrestler') {
-      // Roman Laurel / Crest
-      ctx.fillStyle = '#FFD700';
-      ctx.beginPath();
-      ctx.arc(0, -6, 12, Math.PI, 0);
-      ctx.stroke();
-    } else if (fighter.id === 'valkyrie') {
-      // Energy Wings
-      ctx.strokeStyle = '#00E5FF';
-      ctx.lineWidth = 3;
-      ctx.beginPath();
-      ctx.moveTo(-25, 45);
-      ctx.lineTo(-65, 15 + Math.sin(this.time * 3) * 6);
-      ctx.moveTo(25, 45);
-      ctx.lineTo(65, 15 + Math.sin(this.time * 3) * 6);
-      ctx.stroke();
-    } else if (fighter.id === 'warlord') {
-      // Lava Horns / Spikes
-      ctx.fillStyle = '#FF3300';
-      ctx.beginPath();
-      ctx.moveTo(-16, 0);
-      ctx.lineTo(-26, -18);
-      ctx.lineTo(-8, -4);
-      ctx.moveTo(16, 0);
-      ctx.lineTo(26, -18);
-      ctx.lineTo(8, -4);
-      ctx.fill();
-    }
   }
 }

@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -53,6 +54,12 @@ class MainActivity : ComponentActivity() {
 fun TapoutApp() {
     val context = LocalContext.current
     val soundEngine = remember { SoundEffectsEngine(context) }
+
+    DisposableEffect(soundEngine) {
+        onDispose {
+            soundEngine.release()
+        }
+    }
 
     var currentScreen by remember { mutableStateOf(AppScreen.BOOT) }
     var selectedPlayer by remember { mutableStateOf(Roster.fighters[0]) }

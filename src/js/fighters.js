@@ -1,12 +1,20 @@
 /**
- * Time Tournament - Fighters Roster & Personality Trait Database
+ * Time Tournament - Fighters Roster with Human Origins, Elemental States,
+ * Spirit Animals, Rivalries, Strengths & Weaknesses, and Final Blow Melee Smashes.
  */
 export const FIGHTERS = [
   {
     id: "ninja",
     name: "SHADOW NINJA",
+    realName: "Renzo Takahashi",
+    originType: "Human Shinobi Grandmaster",
+    elementalState: "VOID & SHADOW",
+    elementCategory: "dark",
+    elementSymbol: "🌌",
+    spiritAnimal: "PHANTOM PANTHER",
+    spiritAnimalSymbol: "🐆",
     title: "THE PHANTOM BLADE",
-    style: "NINJUTSU & SHADOWSTEP",
+    style: "NINJUTSU & VOID SHADOWSTEP",
     era: "1580 FEUDAL KYOTO",
     personality: "Calm, lethal, disciplined, and mysterious.",
     timelineOrigin: "Feudal Kyoto Mountain Hermitage • Sengoku Jidai Era (1580)",
@@ -19,6 +27,22 @@ export const FIGHTERS = [
     specialDamage: 38,
     specialName: "VOID BLADE DASH",
     signatureMove: "Dashes through quantum rift dimensions, slicing enemy guard with twin void kunai blades.",
+    finalBlowMeleeSmash: {
+      name: "VOID PANTHER ECLIPSE SMASH",
+      element: "Void / Dark Matter",
+      animalBlend: "Phantom Panther",
+      description: "Awakens the spectral Void Panther spirit, vanishing into pure dark matter before delivering a 7-hit aerial dimensional cross-slash that fractures the spacetime barrier.",
+      quote: "BEHOLD THE FANGS OF THE VOID PANTHER!",
+      damageMultiplier: 2.8
+    },
+    strengths: [
+      { element: "WIND & CYCLONE", reason: "Shadow slips through rushing wind streams without resistance (+25% DMG)." },
+      { element: "EARTH & ROCK", reason: "Phasing void steps bypass solid rock armor completely (+20% DMG)." }
+    ],
+    weaknesses: [
+      { element: "WATER & FROST ICE", reason: "Freezing frost crystallizes void rifts, restricting shadow teleportation (-20% DEF)." },
+      { element: "LIGHTNING & PLASMA", reason: "Hyper-velocity ionized arcs illuminate and disperse shadow cloaks (-25% DEF)." }
+    ],
     weapons: "Twin Spacetime Kunai, Smoke Bombs & Shadow Silk Cowl",
     color: "#C026D3",
     accent: "#E080FF",
@@ -32,19 +56,33 @@ export const FIGHTERS = [
     specialQuote: "VOID RIFT SHADOW CRUSH!",
     victoryQuote: "A true shadow leaves no trace upon the battlefield.",
     combatPhilosophy: "The blade you do not see is the one that decides your fate. True power lies in flow, deception, and precise lethal execution without wasted motion.",
-    bio: "Trained in the mountain cloisters of Kyoto, Renzo was chosen by sacred clan elders to investigate spacetime tears abducting warriors. Moving silently between dimensions, he wields twin chakra kunai that cut through kinetic barriers.",
-    storyArc: "Seeking to restore his destroyed ninja village by claiming the Chrono Core at the top of the Celestial Pantheon tournament.",
+    bio: "Renzo was once an ordinary human monk in Kyoto until discovering the celestial rift scrolls. Awakening the Void Panther spirit within, his human speed transcends the laws of physics.",
+    storyArc: "Seeking to restore his destroyed ninja clan by claiming the Chrono Core at the tournament pinnacle.",
     rival: "TITAN MMA",
+    rivalryReason: "Opposing philosophies: Ancient biological spiritual mastery vs. Synthetic cybernetic augmentation.",
+    dialogue: {
+      prologue: "The Kyoto bells ring across the temporal void. My Panther spirit stirs... the tournament has begun.",
+      vsRival: "Vance... your synthetic wires and steel cannot cage the ancient Void Panther!",
+      rivalResponse: "Data analysis shows your spirit magic is nothing more than unharnessed electromagnetic anomalies, Renzo!",
+      victory: "Your cybernetics rusted before the eternal dark. Return to your future."
+    },
     traits: [
       { name: "Silent Focus", desc: "Maintains absolute stillness in heart and breath until the lethal strike window opens.", color: "#C026D3", pct: 0.95 },
       { name: "Shadow Discipline", desc: "Adheres to the ancient Shinobi oath of stealth, evasion, and temporal concealment.", color: "#00E5FF", pct: 0.90 },
-      { name: "Ancestral Honor", desc: "Fights exclusively to restore his fallen clan and avenge the Kyoto monastery breach.", color: "#FFC837", pct: 0.85 },
+      { name: "Phantom Instinct", desc: "Panther spirit grants 360-degree sensory awareness even in pitch darkness.", color: "#FFC837", pct: 0.92 },
       { name: "Spacetime Weaver", desc: "Manipulates void rips in space to evade kinetic counter-attacks effortlessly.", color: "#E080FF", pct: 0.88 }
     ]
   },
   {
     id: "mma",
     name: "TITAN MMA",
+    realName: "Marcus Vance",
+    originType: "Human Cyber-Enhanced Athlete",
+    elementalState: "LIGHTNING & PLASMA",
+    elementCategory: "electric",
+    elementSymbol: "⚡",
+    spiritAnimal: "THUNDER CYBER-TIGER",
+    spiritAnimalSymbol: "🐅",
     title: "CYBERNETIC OCTAGON KING",
     style: "CYBER FREESTYLE COMBAT",
     era: "2099 NEO TOKYO",
@@ -59,6 +97,22 @@ export const FIGHTERS = [
     specialDamage: 42,
     specialName: "TITAN IMPACT KNEE",
     signatureMove: "Fires hydraulic micro-thrusters in cybernetic knees delivering hyper-velocity strikes.",
+    finalBlowMeleeSmash: {
+      name: "HYPER-VOLT TIGER MELEE SMASH",
+      element: "Lightning / Ionized Plasma",
+      animalBlend: "Thunder Cyber-Tiger",
+      description: "Overclocks neural plasma capacitors, summoning a roaring 10,000-volt Cyber-Tiger aura that pounces on the foe with an explosive ground-pound detonation.",
+      quote: "SYSTEM OVERDRIVE: TIGER FANG CATACLYSM!",
+      damageMultiplier: 2.9
+    },
+    strengths: [
+      { element: "WATER & FROST ICE", reason: "High-voltage plasma conducts instantly through water and ice armor (+30% DMG)." },
+      { element: "VOID & SHADOW", reason: "Ionized lightning flash disperses darkness and reveals hidden hitboxes (+25% DMG)." }
+    ],
+    weaknesses: [
+      { element: "EARTH & ROCK", reason: "Dense ground and insulated rock absorb high-voltage shock discharges (-25% DEF)." },
+      { element: "FIRE & MAGMA", reason: "Extreme magma heat overheats cybernetic coolant systems (-20% DEF)." }
+    ],
     weapons: "Titanium-Tungsten Fist Plating & Kinetic Overdrive Kneepads",
     color: "#FF1A5E",
     accent: "#FF9966",
@@ -72,19 +126,33 @@ export const FIGHTERS = [
     specialQuote: "MAXIMUM THRUST TITAN OVERDRIVE!",
     victoryQuote: "Calculated knockout. Just as my neural engine simulated.",
     combatPhilosophy: "Victory is a mathematical certainty when power, hydraulic velocity, and cybernetic precision converge. Brute force meets synthetic evolution.",
-    bio: "Marcus Vance dominated zero-gravity underground cage leagues. Upgraded with carbon-fiber reinforced bones and hydraulic knee actuators, his striking power rivals industrial demolition machinery.",
+    bio: "Born in the slums of Neo Tokyo, Marcus Vance modified his biological body with hydraulic cybernetics, fusing his fierce human fighting spirit with the Thunder Tiger neural matrix.",
     storyArc: "Fighting to prove human-synthetic hybrid supremacy across all mortal history.",
     rival: "IRON BOXER",
+    rivalryReason: "Clash of generations: 2099 high-tech cyber-kinetic science vs 1974 raw biological heart.",
+    dialogue: {
+      prologue: "Neural link online. Octagon telemetry calibrated. It's time to show these relics true future power.",
+      vsRival: "Sullivan! Your 1970s leather gloves are antique toys against 2099 plasma hydraulics!",
+      rivalResponse: "Toys? Boy, my left hook will knock those shiny computer chips right out of your skull!",
+      victory: "Simulation verified. Raw human stamina cannot outpace a cybernetic overclock."
+    },
     traits: [
       { name: "Overclocked Drive", desc: "Pushes neural implants past safety thresholds for blinding reaction times.", color: "#FF1A5E", pct: 0.96 },
-      { name: "Data-Driven Striking", desc: "Simulates 10,000 punch vectors per second using tactical AI telemetry.", color: "#FF7020", pct: 0.92 },
-      { name: "Unshakable Ego", desc: "Believes biological warriors from the past are obsolete relics.", color: "#FFC837", pct: 0.88 },
+      { name: "Thunder Tiger Stalk", desc: "Generates static plasma charges with every step to amplify strike power.", color: "#FF7020", pct: 0.92 },
+      { name: "Data-Driven Striking", desc: "Simulates 10,000 punch vectors per second using tactical AI telemetry.", color: "#FFC837", pct: 0.88 },
       { name: "Titan Armor", desc: "Synthetic carbon skeleton absorbs blunt impact and redistributes force as bursts.", color: "#FF9966", pct: 0.85 }
     ]
   },
   {
     id: "boxer",
     name: "IRON BOXER",
+    realName: "Jack 'Thunder' Sullivan",
+    originType: "Human Heavyweight Champion",
+    elementalState: "WIND & CYCLONE",
+    elementCategory: "wind",
+    elementSymbol: "🌪️",
+    spiritAnimal: "STORM FALCON",
+    spiritAnimalSymbol: "🦅",
     title: "THE BRONX THUNDERBOLT",
     style: "CLASSIC HEAVYWEIGHT BOXING",
     era: "1974 BROOKLYN BRONX",
@@ -99,6 +167,22 @@ export const FIGHTERS = [
     specialDamage: 40,
     specialName: "DRAGON UPPERCUT",
     signatureMove: "Dips low in bob-and-weave stance, detonating explosive upward hook launching rivals airborne.",
+    finalBlowMeleeSmash: {
+      name: "CYCLONE FALCON DECIMATION HOOK",
+      element: "Wind / Hurricane Gale",
+      animalBlend: "Storm Falcon",
+      description: "Channels human fighting willpower into the soaring Storm Falcon, creating a roaring hurricane vortex around his fists before detonating a knockout uppercut.",
+      quote: "EAT A BROOKLYN HURRICANE! KNOCKOUT!",
+      damageMultiplier: 2.85
+    },
+    strengths: [
+      { element: "EARTH & ROCK", reason: "Gale-force wind gusts erode solid stone barriers and destabilize heavy footing (+25% DMG)." },
+      { element: "WATER & FROST ICE", reason: "Vortices scatter water jets and disperse fog layers (+20% DMG)." }
+    ],
+    weaknesses: [
+      { element: "FIRE & MAGMA", reason: "Oxygen in wind feeds and supercharges enemy flame attacks (-25% DEF)." },
+      { element: "VOID & SHADOW", reason: "Air cannot push against incorporeal shadow matter (-20% DEF)." }
+    ],
     weapons: "Vintage Hand-Wrapped Leather Boxing Gloves & Brass Belt Buckle",
     color: "#00E5FF",
     accent: "#80EEFF",
@@ -112,12 +196,19 @@ export const FIGHTERS = [
     specialQuote: "TAKE A FLIGHT WITH THE DRAGON UPPERCUT!",
     victoryQuote: "Down goes another contender! Ring the bell, ref!",
     combatPhilosophy: "Float like thunder, strike like an earthquake. A real champion gets knocked down six times and stands back up seven. No fancy gadgets—just raw hooks.",
-    bio: "Jack 'Thunder' Sullivan rose from cold Brooklyn basements to the world heavyweight championship. Known for devastating slip-and-counter punches and an indestructible chin.",
+    bio: "A working-class human fighter from the hard streets of Brooklyn. When pushed to the brink, Jack awakens the Storm Falcon—a supernatural gust of pure determination that turns his fists into gale-force hammers.",
     storyArc: "Transported mid-championship bout into the time arena, Jack fights to bring the belt back to 1974.",
     rival: "COLOSSEUM GRAPPLER",
+    rivalryReason: "Pugilist vs Pankration: Boxing fist craftsmanship versus ancient Roman imperial wrestling brute force.",
+    dialogue: {
+      prologue: "Smell that? Sweat, leather, and glory. No bell rings until only one man is standing.",
+      vsRival: "Maximus! Keep those giant gladiator paws off me or I'll slip inside and crack your ribs!",
+      rivalResponse: "Hah! A man with padded mittens challenges the Roman Colosseum? I shall throw you to Jupiter!",
+      victory: "And the new undisputed time champion of the world... Jack 'Thunder' Sullivan!"
+    },
     traits: [
       { name: "Indestructible Grit", desc: "Draws greater punching power when pinned against the ropes.", color: "#00E5FF", pct: 0.94 },
-      { name: "Street Smart Instincts", desc: "Reads body weight shifts with boxing reflexes honed in 500 street bouts.", color: "#FFC837", pct: 0.90 },
+      { name: "Falcon Reflexes", desc: "Reads opponent shoulder twitches to bob and weave under heavy hooks.", color: "#FFC837", pct: 0.90 },
       { name: "Iron Chin", desc: "Shrugs off concussive blows that would knock ordinary combatants cold.", color: "#E60045", pct: 0.92 },
       { name: "Old-School Heart", desc: "Values pure sweat, raw heart, and honest fist-to-fist fighting spirit.", color: "#80EEFF", pct: 0.88 }
     ]
@@ -125,6 +216,13 @@ export const FIGHTERS = [
   {
     id: "wrestler",
     name: "COLOSSEUM GRAPPLER",
+    realName: "Maximus of Thrace",
+    originType: "Human Roman Champion Gladiator",
+    elementalState: "EARTH & ROCK",
+    elementCategory: "earth",
+    elementSymbol: "🪨",
+    spiritAnimal: "COLOSSAL GOLDEN BULL",
+    spiritAnimalSymbol: "🐂",
     title: "THE IMPERIAL LION",
     style: "GRECO-ROMAN OLYMPIAN",
     era: "79 AD ANCIENT ROME",
@@ -139,6 +237,22 @@ export const FIGHTERS = [
     specialDamage: 48,
     specialName: "SEISMIC OLYMPIA SUPLEX",
     signatureMove: "Grips opponent in bearhug, vaults backwards with Herculean power crashing them headfirst.",
+    finalBlowMeleeSmash: {
+      name: "TITAN BULL SEISMIC MELEE CRUSH",
+      element: "Earth / Solid Granite",
+      animalBlend: "Colossal Golden Bull",
+      description: "Summons the roaring Golden Bull of Olympus, stomping tectonic shockwaves into the arena before crushing the target in an unstoppable suplex smash.",
+      quote: "BY HERCULES AND MARS: TASTE IMPERIAL GRANITE!",
+      damageMultiplier: 3.0
+    },
+    strengths: [
+      { element: "LIGHTNING & PLASMA", reason: "Dense bedrock and solid earth ground electrical current harmlessly (+30% DMG)." },
+      { element: "FIRE & MAGMA", reason: "Crushed stone smothers flames and blocks thermal blasts (+20% DMG)." }
+    ],
+    weaknesses: [
+      { element: "WIND & CYCLONE", reason: "Heavy mass is vulnerable to high-altitude throws and vortex launches (-20% DEF)." },
+      { element: "VOID & SHADOW", reason: "Intangible void attacks bypass immovable physical bulk (-25% DEF)." }
+    ],
     weapons: "Gilded Gladiator Cestus, Golden Laurel Crown & Imperial Plate",
     color: "#FFC837",
     accent: "#FFF080",
@@ -152,12 +266,19 @@ export const FIGHTERS = [
     specialQuote: "FEEL THE WRATH OF OLYMPUS!",
     victoryQuote: "Glory to Rome! The arena belongs to the undefeated lion!",
     combatPhilosophy: "The earth will yield before a true gladiator does. Throw your foe with the weight of the heavens and let the crowd roar their tribute.",
-    bio: "Maximus of Thrace conquered every coliseum from Alexandria to Rome. Crowned with laurel wreaths by emperors, his superhuman grip and seismic slams shake the earth.",
+    bio: "A human warrior born to the arena sand. Through relentless gladiatorial combat, Maximus bonded with the ancient Golden Bull spirit, hardening his human flesh into living granite.",
     storyArc: "Summoned to the time nexus to claim divine immortality from the tournament creators.",
     rival: "VOLCANIC WARLORD",
+    rivalryReason: "Earth vs Magma: Solid enduring rock against chaotic destructive volcanic fire.",
+    dialogue: {
+      prologue: "The sands of the amphitheater call to me. Caesar watching or not, glory shall be mine!",
+      vsRival: "Ignis! Your wild fire may melt lesser men, but Roman rock stands immortal!",
+      rivalResponse: "Rock turns into liquid magma when my flame burns at full heat, Roman fool!",
+      victory: "The colosseum roars! Bow down before the champion of Rome!"
+    },
     traits: [
       { name: "Gladiator Pride", desc: "Commands the arena crowd with roaring charisma and Roman glory.", color: "#FFC837", pct: 0.96 },
-      { name: "Titan Grip", desc: "Once locked in a hold, escape is impossible without divine intervention.", color: "#E60045", pct: 0.98 },
+      { name: "Golden Bull Charge", desc: "Channels unstoppable momentum that ignores enemy light attacks.", color: "#E60045", pct: 0.98 },
       { name: "Martial Honor", desc: "Refuses cowardly strikes, demanding face-to-face heavy grappling duels.", color: "#FFF080", pct: 0.89 },
       { name: "Indomitable Mass", desc: "Anchors to arena sand like a fortress tower against knockbacks.", color: "#FF7020", pct: 0.94 }
     ]
@@ -165,6 +286,13 @@ export const FIGHTERS = [
   {
     id: "valkyrie",
     name: "CYBER VALKYRIE",
+    realName: "Astrid Lindholm",
+    originType: "Human Astral Fighter Ace",
+    elementalState: "WATER & FROST ICE",
+    elementCategory: "water",
+    elementSymbol: "❄️",
+    spiritAnimal: "AURORA FROST DRAGON",
+    spiritAnimalSymbol: "🐉",
     title: "ASTRAL SHIELD MAIDEN",
     style: "SYNTHETIC VALHALLA COMBAT",
     era: "2140 VALKYRIE CORPS",
@@ -179,6 +307,22 @@ export const FIGHTERS = [
     specialDamage: 44,
     specialName: "AURORA PLASMA SPEAR",
     signatureMove: "Summons ionized aurora plasma lance projecting concentrated solar energy beams.",
+    finalBlowMeleeSmash: {
+      name: "GLACIAL DRAGON ASTRAL MELEE DIVE",
+      element: "Frost Ice / Liquid Nitrogen",
+      animalBlend: "Aurora Frost Dragon",
+      description: "Unleashes the cryo-astral Frost Dragon, freezing the arena floor before executing a supersonic aerial lance strike shattering target defenses into ice crystals.",
+      quote: "FROST DRAGON ASCENSION: FREEZE THE TIMELINE!",
+      damageMultiplier: 2.9
+    },
+    strengths: [
+      { element: "FIRE & MAGMA", reason: "Sub-zero glacial frost instantly extinguishes blazing flame attacks (+30% DMG)." },
+      { element: "VOID & SHADOW", reason: "Ice crystals refract light into shadow pockets, breaking stealth (+25% DMG)." }
+    ],
+    weaknesses: [
+      { element: "LIGHTNING & PLASMA", reason: "Ionized lightning discharges supercharge through water and freeze armor (-25% DEF)." },
+      { element: "WIND & CYCLONE", reason: "Hurricane crosswinds disrupt aerial gliding wings (-20% DEF)." }
+    ],
     weapons: "Photon Valkyrie Wings, Plasma Rail Lance & Asgardian Force Shield",
     color: "#00E5FF",
     accent: "#B3FFFF",
@@ -192,12 +336,19 @@ export const FIGHTERS = [
     specialQuote: "AURORA PLASMA DISCHARGE!",
     victoryQuote: "Target neutralized. Recording telemetry to the Valkyrie mainframe.",
     combatPhilosophy: "Precision conquers brute savagery. We strike with the speed of northern lights and defend with the fortress of the cosmos.",
-    bio: "Engineered as apex guardian unit of orbital station Asgard-9, Astrid channels high-energy plasma arcs into supersonic aerial strikes and kinetic force shields.",
+    bio: "A human elite test pilot from the Valkyrie Corps who bonded with a cryo-spatial organism known as the Frost Dragon. Astrid combines human tactical military training with glacial elemental mastery.",
     storyArc: "Tasked with containing temporal anomalies threatening stability of the 22nd century.",
     rival: "SHADOW NINJA",
+    rivalryReason: "Order & Optics vs Chaos & Stealth: Astrid's light scans vs Renzo's shadow concealment.",
+    dialogue: {
+      prologue: "Asgard-9 telemetry locked. Spatial rupture detected. Engaging tournament perimeter.",
+      vsRival: "Renzo! Thermal and cryo scanners have locked onto your void frequency. You cannot hide!",
+      rivalResponse: "Scanners only see what light touches, Valkyrie. The void has no heat to read.",
+      victory: "Telemetry uploaded. The timeline remains secured under Valkyrie guard."
+    },
     traits: [
       { name: "Astral Precision", desc: "Channels plasma particles along magnetic rail conduits for instantaneous thrust.", color: "#00E5FF", pct: 0.93 },
-      { name: "Strategic Sovereignty", desc: "Calculates battlefield vectors from high-altitude tactical scans.", color: "#C026D3", pct: 0.89 },
+      { name: "Frost Dragon Roar", desc: "Chills atmospheric temperature to slow enemy strike velocity.", color: "#C026D3", pct: 0.89 },
       { name: "Valkyrie Oath", desc: "Sworn to safeguard space-time continuum from temporal warlords and chaos rifts.", color: "#FFC837", pct: 0.92 },
       { name: "Photon Aegis", desc: "Projects electromagnetic force barriers that deflect energy projectiles.", color: "#B3FFFF", pct: 0.91 }
     ]
@@ -205,6 +356,13 @@ export const FIGHTERS = [
   {
     id: "warlord",
     name: "VOLCANIC WARLORD",
+    realName: "Ignis Kahn",
+    originType: "Human Magma Clan Chieftain",
+    elementalState: "FIRE & MAGMA",
+    elementCategory: "fire",
+    elementSymbol: "🔥",
+    spiritAnimal: "MOLTEN LAVA PHOENIX",
+    spiritAnimalSymbol: "🦚",
     title: "SCORCHED EARTH BERSERKER",
     style: "LAVA CRUSHING BRAWLER",
     era: "ERA OF FLAME",
@@ -219,6 +377,22 @@ export const FIGHTERS = [
     specialDamage: 46,
     specialName: "MAGMA ERUPTION SLAM",
     signatureMove: "Punches into the ground detonating a volcanic pillar blasting enemies skyward.",
+    finalBlowMeleeSmash: {
+      name: "MOLTEN PHOENIX INFERNO MELEE SMASH",
+      element: "Fire / Superheated Magma",
+      animalBlend: "Molten Lava Phoenix",
+      description: "Manifests the wings of the Primeval Lava Phoenix, rocketing into the sky before crashing into the opponent with a colossal pyroclastic explosion.",
+      quote: "BURN IN THE PHOENIX INFERNO! ASH TO ASH!",
+      damageMultiplier: 3.1
+    },
+    strengths: [
+      { element: "WIND & CYCLONE", reason: "Oxygen storms feed and superheat raging magma firestorms (+25% DMG)." },
+      { element: "LIGHTNING & PLASMA", reason: "Extreme volcanic heat overloads sensitive cybernetic electronics (+25% DMG)." }
+    ],
+    weaknesses: [
+      { element: "WATER & FROST ICE", reason: "Cryo freezing drops core lava temperatures causing rapid crusting (-30% DEF)." },
+      { element: "EARTH & ROCK", reason: "Bedrock and stone smother volcanic flame spread (-20% DEF)." }
+    ],
     weapons: "Obsidian-Lava Gauntlets, Molten Spiked Pauldrons & Flame Core",
     color: "#FF7020",
     accent: "#FF5500",
@@ -232,13 +406,20 @@ export const FIGHTERS = [
     specialQuote: "HELLFIRE VOLCANIC CATACLYSM!",
     victoryQuote: "Ash to ash! The fire consumes all weakness!",
     combatPhilosophy: "All things return to ash and magma. Those who hesitate are consumed by the furnace of war. Strike until only molten rock remains.",
-    bio: "Born in subterranean caldera chambers beneath burning rift faults, Ignis commands molten kinetic fury that superheats his fists to blast through solid iron.",
+    bio: "A human warlord who survived the volcanic cataclysms of the primal age. Drinking from the molten caldera springs, he awakened the Lava Phoenix spirit to turn his human fists into erupting magma.",
     storyArc: "Seeking to engulf the multiverse in an eternal cleansing flame.",
     rival: "COLOSSEUM GRAPPLER",
+    rivalryReason: "Primal fire fury versus disciplined Roman earth defense.",
+    dialogue: {
+      prologue: "The magma in my veins boils. These warriors are brittle twigs before my furnace!",
+      vsRival: "Maximus! Your gladiator stone will melt into glowing lava before my fists!",
+      rivalResponse: "Rome was built on stone that outlasts all fires, Ignis! Feel the weight of the Colosseum!",
+      victory: "Another challenger burned to cinders! Who dares face the Phoenix next?"
+    },
     traits: [
       { name: "Molten Berserk", desc: "Ignites superheated magma veins in fists when taking battle damage.", color: "#FF7020", pct: 0.98 },
-      { name: "Seismic Dominance", desc: "Stomps shatter the ground, creating eruptive fissures under enemy footing.", color: "#FF1A5E", pct: 0.94 },
-      { name: "Unstoppable Onslaught", desc: "Marches through defenses with the weight of an active pyroclastic surge.", color: "#FFC837", pct: 0.91 },
+      { name: "Phoenix Rebirth Aura", desc: "Unleashes blazing heat waves when HP drops below 30%.", color: "#FF1A5E", pct: 0.95 },
+      { name: "Seismic Dominance", desc: "Stomps shatter the ground, creating eruptive fissures under enemy footing.", color: "#FFC837", pct: 0.94 },
       { name: "Cataclysmic Will", desc: "Believes peace is weakness and only eternal conflict tempers true warriors.", color: "#FF5500", pct: 0.95 }
     ]
   }

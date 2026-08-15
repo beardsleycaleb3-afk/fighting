@@ -2,24 +2,30 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="viewport" content="width=350, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <link rel="manifest" href="./manifest.json" />
   <link rel="icon" type="image/png" sizes="192x192" href="./icon192.png" />
   <link rel="apple-touch-icon" href="./icon192.png" />
   <meta name="theme-color" content="#E60045" />
-  <title>TIME TOURNAMENT — Fighter Dossier & Battle Manual</title>
+  <title>TIME TOURNAMENT — Elemental Spirit Arcade</title>
+
+  <!-- External Libraries: Babylon.js, Fabric.js, Matter.js -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.1/fabric.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babylonjs/6.39.0/babylon.js"></script>
+
   <style>
     :root {
-      --bg-dark: #0A0006;
-      --surface-card: #16000E;
-      --surface-elevated: #220016;
+      --bg-dark: #0A0008;
+      --surface-card: #150010;
+      --surface-elevated: #24001A;
       --crimson: #E60045;
       --bright-red: #FF1A5E;
       --gold: #FFC837;
       --orange: #FF7020;
       --neon-blue: #00E5FF;
       --neon-purple: #C026D3;
-      --border-dark: rgba(255, 255, 255, 0.12);
+      --border-dark: rgba(255, 255, 255, 0.14);
       --font-mono: 'SF Pro Mono', 'Roboto Mono', Menlo, Consolas, monospace;
       --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     }
@@ -29,6 +35,7 @@
       margin: 0;
       padding: 0;
       -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
       user-select: none;
     }
 
@@ -44,136 +51,389 @@
       overflow-x: hidden;
     }
 
+    /* TCL Smartphone Viewport (350x550 / 720x1440 scaling) */
     .app-container {
       width: 100%;
-      max-width: 480px;
-      min-height: 100vh;
-      padding: 12px;
+      max-width: 350px;
+      min-height: 550px;
+      padding: 6px;
       display: flex;
       flex-direction: column;
-      gap: 12px;
+      gap: 6px;
+      position: relative;
+      padding-bottom: 58px; /* space for bottom floating action controls */
     }
 
-    /* HEADER */
+    /* GLOBAL HEADER */
     .header {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding-bottom: 2px;
+      padding: 4px 6px;
+      background: var(--surface-card);
+      border: 1px solid var(--border-dark);
+      border-radius: 8px;
     }
 
     .header-title {
       font-family: var(--font-mono);
-      font-size: 16px;
+      font-size: 13px;
       font-weight: 900;
-      letter-spacing: 1.5px;
+      letter-spacing: 1px;
       color: var(--crimson);
-      text-shadow: 0 0 12px rgba(230, 0, 69, 0.6);
+      text-shadow: 0 0 8px rgba(230, 0, 69, 0.6);
     }
 
-    .header-subtitle {
-      font-size: 8.5px;
-      font-weight: 600;
+    .header-sub {
+      font-size: 7.5px;
       color: rgba(255, 255, 255, 0.6);
+    }
+
+    .header-controls {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .btn-pause-header {
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      background: var(--surface-elevated);
+      border: 1px solid var(--gold);
+      color: var(--gold);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      touch-action: manipulation;
+    }
+
+    /* VIEW CONTAINERS */
+    .view-screen {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      width: 100%;
+    }
+
+    /* ================= MAIN MENU ================= */
+    .menu-hero-banner {
+      background: linear-gradient(135deg, #24001A 0%, #0A0008 100%);
+      border: 1.5px solid var(--bright-red);
+      border-radius: 10px;
+      padding: 12px 10px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      gap: 4px;
+      box-shadow: 0 0 16px rgba(230, 0, 69, 0.3);
+    }
+
+    .menu-logo-title {
+      font-family: var(--font-mono);
+      font-size: 20px;
+      font-weight: 900;
+      letter-spacing: 1.5px;
+      color: #FFF;
+      text-shadow: 0 0 12px var(--bright-red);
+    }
+
+    .menu-logo-sub {
+      font-size: 8.5px;
+      color: var(--gold);
+      font-weight: 700;
       letter-spacing: 0.8px;
     }
 
-    .status-badge {
-      font-family: var(--font-mono);
-      font-size: 8.5px;
-      font-weight: 700;
-      padding: 4px 8px;
-      border-radius: 20px;
-      background: var(--surface-card);
-      border: 1px solid var(--gold);
-      color: var(--gold);
-    }
-
-    /* COMBO HUD & STREAK COUNTER */
-    .combo-hud {
-      background: rgba(0, 0, 0, 0.6);
-      border: 1px solid rgba(255, 200, 55, 0.4);
-      border-radius: 10px;
-      padding: 8px 12px;
+    .menu-action-list {
       display: flex;
-      justify-content: space-between;
-      align-items: center;
-      transition: all 0.2s ease;
-    }
-
-    .combo-hud.hidden {
-      opacity: 0.2;
-    }
-
-    .combo-num {
-      font-family: var(--font-mono);
-      font-size: 18px;
-      font-weight: 900;
-      color: var(--gold);
-      text-shadow: 0 0 10px rgba(255, 200, 55, 0.7);
-      transition: transform 0.15s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    }
-
-    .combo-label {
-      font-family: var(--font-mono);
-      font-size: 10px;
-      font-weight: 800;
-      color: var(--neon-blue);
-      letter-spacing: 1px;
-    }
-
-    .combat-test-btns {
-      display: flex;
+      flex-direction: column;
       gap: 6px;
+      margin-top: 4px;
     }
 
-    .btn-test {
-      padding: 5px 9px;
-      font-family: var(--font-mono);
-      font-size: 9px;
-      font-weight: 800;
-      border-radius: 6px;
-      border: 1px solid var(--border-dark);
-      background: var(--surface-card);
-      color: #FFF;
-      cursor: pointer;
-      transition: all 0.1s ease;
-    }
-
-    .btn-test:active {
-      transform: scale(0.95);
-      background: var(--crimson);
-    }
-
-    /* ROSTER GRID */
-    .roster-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 6px;
-    }
-
-    .roster-card {
+    .btn-menu-option {
       background: var(--surface-card);
       border: 1.5px solid var(--border-dark);
       border-radius: 8px;
+      padding: 9px 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      touch-action: manipulation;
+      transition: all 0.15s ease;
+    }
+
+    .btn-menu-option:active {
+      transform: scale(0.97);
+      background: var(--surface-elevated);
+      border-color: var(--crimson);
+    }
+
+    .btn-menu-option.primary {
+      background: linear-gradient(90deg, #E60045 0%, #99002B 100%);
+      border-color: var(--bright-red);
+      box-shadow: 0 0 12px rgba(255, 26, 94, 0.4);
+    }
+
+    .menu-opt-label {
+      font-family: var(--font-mono);
+      font-size: 10.5px;
+      font-weight: 900;
+      letter-spacing: 0.6px;
+    }
+
+    .menu-opt-desc {
+      font-size: 7.5px;
+      color: rgba(255, 255, 255, 0.7);
+    }
+
+    /* ================= START GAME SCREEN ================= */
+    .matchup-banner {
+      background: var(--surface-card);
+      border: 1px solid var(--border-dark);
+      border-radius: 8px;
+      padding: 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .versus-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 4px;
+    }
+
+    .fighter-matchup-card {
+      flex: 1;
+      background: rgba(0, 0, 0, 0.5);
+      border: 1px solid var(--border-dark);
+      border-radius: 6px;
       padding: 6px;
-      cursor: pointer;
-      transition: all 0.2s ease;
       display: flex;
       flex-direction: column;
       gap: 2px;
     }
 
+    .vs-emblem {
+      font-family: var(--font-mono);
+      font-size: 13px;
+      font-weight: 900;
+      color: var(--gold);
+      text-shadow: 0 0 8px var(--gold);
+    }
+
+    .matchup-analysis-box {
+      background: rgba(0, 0, 0, 0.6);
+      border-left: 3px solid var(--neon-blue);
+      padding: 5px 8px;
+      border-radius: 4px;
+      font-size: 7.5px;
+      line-height: 11px;
+    }
+
+    /* ================= BATTLE ARENA ================= */
+    .battle-hud {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      background: var(--surface-card);
+      border: 1px solid var(--border-dark);
+      border-radius: 8px;
+      padding: 6px;
+    }
+
+    .health-bar-container {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .hp-header {
+      display: flex;
+      justify-content: space-between;
+      font-family: var(--font-mono);
+      font-size: 7.5px;
+      font-weight: 800;
+    }
+
+    .hp-track {
+      width: 100%;
+      height: 7px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+
+    .hp-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #FF1A5E, #FFC837);
+      border-radius: 3px;
+      transition: width 0.25s ease;
+    }
+
+    .hp-fill.rival {
+      background: linear-gradient(90deg, #00E5FF, #C026D3);
+    }
+
+    .super-meter-track {
+      width: 100%;
+      height: 4px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+
+    .super-meter-fill {
+      height: 100%;
+      background: #00E5FF;
+      box-shadow: 0 0 6px #00E5FF;
+      transition: width 0.2s ease;
+    }
+
+    /* BATTLE CANVAS BOX */
+    .battle-stage-canvas-box {
+      width: 100%;
+      height: 140px;
+      background: #000;
+      border-radius: 8px;
+      border: 1.5px solid var(--border-dark);
+      overflow: hidden;
+      position: relative;
+    }
+
+    #portraitCanvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    .combat-touch-controls {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 4px;
+    }
+
+    .btn-combat-act {
+      background: var(--surface-card);
+      border: 1px solid var(--border-dark);
+      border-radius: 6px;
+      padding: 8px 4px;
+      font-family: var(--font-mono);
+      font-size: 8px;
+      font-weight: 800;
+      color: #FFF;
+      text-align: center;
+      touch-action: manipulation;
+    }
+
+    .btn-combat-act:active {
+      transform: scale(0.95);
+      background: var(--crimson);
+    }
+
+    /* ================= STORY DIALOGUE (VISUAL NOVEL) ================= */
+    .dialogue-wrapper {
+      background: var(--surface-card);
+      border: 1.5px solid var(--gold);
+      border-radius: 10px;
+      padding: 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      box-shadow: 0 0 14px rgba(255, 200, 55, 0.2);
+    }
+
+    .dialogue-speaker-banner {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .dialogue-avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 6px;
+      background: #000;
+      border: 1.5px solid var(--crimson);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+    }
+
+    .dialogue-speaker-name {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      font-weight: 900;
+      color: var(--gold);
+    }
+
+    .dialogue-speaker-title {
+      font-size: 7px;
+      color: rgba(255, 255, 255, 0.6);
+    }
+
+    .dialogue-box-body {
+      background: rgba(0, 0, 0, 0.6);
+      border-radius: 6px;
+      padding: 8px;
+      min-height: 80px;
+      font-size: 8.5px;
+      line-height: 13px;
+      color: #FFF;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .dialogue-prompt-advance {
+      font-family: var(--font-mono);
+      font-size: 7px;
+      color: var(--gold);
+      text-align: right;
+      font-weight: 800;
+      margin-top: 4px;
+      animation: pulseBlink 1s infinite alternate;
+    }
+
+    @keyframes pulseBlink {
+      from { opacity: 0.4; }
+      to { opacity: 1.0; }
+    }
+
+    /* ================= FIGHTER DOSSIER & ROSTER ================= */
+    .roster-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 5px;
+    }
+
+    .roster-card {
+      background: var(--surface-card);
+      border: 1.5px solid var(--border-dark);
+      border-radius: 6px;
+      padding: 5px;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      touch-action: manipulation;
+    }
+
     .roster-card.selected {
-      transform: translateY(-2px);
+      transform: translateY(-1px);
     }
 
     .roster-badge {
-      width: 18px;
-      height: 18px;
-      border-radius: 4px;
+      width: 15px;
+      height: 15px;
+      border-radius: 3px;
       font-family: var(--font-mono);
-      font-size: 8px;
+      font-size: 7.5px;
       font-weight: 900;
       display: flex;
       align-items: center;
@@ -183,7 +443,7 @@
 
     .roster-name {
       font-family: var(--font-mono);
-      font-size: 8.5px;
+      font-size: 7.5px;
       font-weight: 800;
       white-space: nowrap;
       overflow: hidden;
@@ -191,145 +451,30 @@
     }
 
     .roster-era {
-      font-size: 7px;
+      font-size: 6.5px;
       color: rgba(255, 255, 255, 0.5);
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
     }
 
-    /* HERO PORTRAIT & META */
-    .hero-card {
-      background: var(--surface-card);
-      border-radius: 12px;
-      border: 1px solid var(--border-dark);
-      padding: 10px;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
-
-    .hero-layout {
-      display: flex;
-      gap: 10px;
-      height: 130px;
-    }
-
-    .canvas-box {
-      width: 110px;
-      height: 100%;
-      border-radius: 8px;
-      overflow: hidden;
-      background: #000;
-      border: 1px solid rgba(255, 255, 255, 0.2);
-    }
-
-    #portraitCanvas {
-      width: 100%;
-      height: 100%;
-      display: block;
-    }
-
-    .hero-meta-panel {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-    }
-
-    .hero-name {
-      font-family: var(--font-mono);
-      font-size: 14px;
-      font-weight: 900;
-      letter-spacing: 0.5px;
-    }
-
-    .hero-title {
-      font-size: 9px;
-      font-weight: 700;
-      color: var(--gold);
-    }
-
-    .hero-style {
-      font-size: 7.5px;
-      color: rgba(255, 255, 255, 0.6);
-    }
-
-    .hero-quote {
-      font-size: 8px;
-      font-style: italic;
-      color: rgba(255, 255, 255, 0.85);
-      line-height: 11px;
-      background: rgba(0, 0, 0, 0.3);
-      padding: 4px 6px;
-      border-radius: 4px;
-    }
-
-    /* STATS BARS */
-    .stats-matrix {
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-      background: rgba(0,0,0,0.3);
-      padding: 6px;
-      border-radius: 6px;
-    }
-
-    .stat-row {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-
-    .stat-tag {
-      font-family: var(--font-mono);
-      font-size: 7.5px;
-      font-weight: 700;
-      width: 24px;
-      color: rgba(255, 255, 255, 0.6);
-    }
-
-    .stat-track {
-      flex: 1;
-      height: 4px;
-      background: rgba(255, 255, 255, 0.1);
-      border-radius: 2px;
-      overflow: hidden;
-    }
-
-    .stat-bar {
-      height: 100%;
-      border-radius: 2px;
-      transition: width 0.3s ease;
-    }
-
-    .stat-num {
-      font-family: var(--font-mono);
-      font-size: 7.5px;
-      width: 24px;
-      text-align: right;
-      color: rgba(255, 255, 255, 0.7);
-    }
-
-    /* TABS */
     .tabs-bar {
       display: flex;
-      gap: 4px;
+      gap: 3px;
     }
 
     .tab-btn {
       flex: 1;
-      padding: 6px;
+      padding: 5px;
       font-family: var(--font-mono);
-      font-size: 8.5px;
+      font-size: 7.5px;
       font-weight: 800;
       text-align: center;
       background: var(--surface-card);
       border: 1px solid var(--border-dark);
-      border-radius: 6px;
+      border-radius: 5px;
       color: rgba(255, 255, 255, 0.6);
-      cursor: pointer;
-      transition: all 0.2s ease;
+      touch-action: manipulation;
     }
 
     .tab-btn.active {
@@ -338,83 +483,77 @@
       color: #FFF;
     }
 
-    /* TAB CONTENT */
     .tab-container {
       background: var(--surface-card);
-      border-radius: 10px;
+      border-radius: 8px;
       border: 1px solid var(--border-dark);
-      padding: 10px;
-      min-height: 160px;
+      padding: 8px;
+      min-height: 120px;
     }
 
     .lore-section-title {
       font-family: var(--font-mono);
-      font-size: 8.5px;
+      font-size: 8px;
       font-weight: 900;
       letter-spacing: 0.5px;
-      margin-bottom: 4px;
+      margin-bottom: 3px;
     }
 
     .lore-text {
-      font-size: 8.5px;
-      line-height: 13px;
+      font-size: 8px;
+      line-height: 12px;
       color: rgba(255, 255, 255, 0.85);
     }
 
     .lore-meta-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 6px;
-      margin-top: 8px;
+      gap: 5px;
+      margin-top: 6px;
     }
 
     .lore-meta-card {
       background: rgba(0, 0, 0, 0.4);
-      padding: 6px;
-      border-radius: 6px;
+      padding: 5px;
+      border-radius: 5px;
       display: flex;
       flex-direction: column;
       gap: 2px;
     }
 
     .lore-meta-card .label {
-      font-size: 7px;
+      font-size: 6.5px;
       color: rgba(255, 255, 255, 0.5);
       font-weight: 700;
     }
 
     .lore-meta-card .val {
       font-family: var(--font-mono);
-      font-size: 8px;
+      font-size: 7.5px;
       font-weight: 800;
-    }
-
-    .traits-container {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
     }
 
     .trait-card {
       background: rgba(0, 0, 0, 0.4);
-      padding: 6px 8px;
-      border-radius: 6px;
+      padding: 5px 6px;
+      border-radius: 5px;
+      margin-bottom: 4px;
     }
 
     .trait-header {
       display: flex;
       justify-content: space-between;
       font-family: var(--font-mono);
-      font-size: 8px;
+      font-size: 7.5px;
       font-weight: 800;
-      margin-bottom: 3px;
+      margin-bottom: 2px;
     }
 
     .trait-bar-bg {
       height: 3px;
       background: rgba(255, 255, 255, 0.1);
       border-radius: 2px;
-      margin-bottom: 4px;
+      margin-bottom: 3px;
       overflow: hidden;
     }
 
@@ -424,220 +563,678 @@
     }
 
     .trait-desc {
-      font-size: 8px;
+      font-size: 7.5px;
       color: rgba(255, 255, 255, 0.75);
-      line-height: 11px;
+      line-height: 10px;
     }
 
-    /* STAGES ARENA EXPANDER */
-    .stages-section-title {
+    .special-move-banner {
+      background: rgba(0, 0, 0, 0.5);
+      border-left: 3px solid var(--crimson);
+      border-radius: 5px;
+      padding: 6px;
+      margin-bottom: 6px;
+    }
+
+    .special-badge {
+      display: inline-block;
       font-family: var(--font-mono);
-      font-size: 11px;
+      font-size: 7px;
       font-weight: 900;
-      color: var(--gold);
-      margin-top: 4px;
+      color: #FFF;
+      padding: 1px 4px;
+      border-radius: 3px;
+      margin-bottom: 2px;
+    }
+
+    .special-move-name {
+      font-family: var(--font-mono);
+      font-size: 9px;
+      font-weight: 900;
+      margin-bottom: 2px;
+    }
+
+    .special-move-desc {
+      font-size: 7.5px;
+      line-height: 10px;
+      color: rgba(255, 255, 255, 0.8);
+    }
+
+    .philosophy-quote {
+      border-left: 2px solid var(--gold);
+      padding-left: 5px;
+      font-size: 7.5px;
+      font-style: italic;
+      line-height: 11px;
+      color: rgba(255, 255, 255, 0.85);
+      margin-bottom: 6px;
     }
 
     .stages-grid {
       display: flex;
       flex-direction: column;
-      gap: 6px;
+      gap: 5px;
     }
 
     .stage-card {
       background: var(--surface-card);
-      border-radius: 8px;
-      padding: 8px;
+      border-radius: 6px;
+      padding: 6px;
       border: 1px solid var(--border-dark);
+      touch-action: manipulation;
     }
 
     .stage-header {
       display: flex;
       justify-content: space-between;
       font-family: var(--font-mono);
-      font-size: 8px;
+      font-size: 7.5px;
       font-weight: 800;
     }
 
     .stage-name {
       font-family: var(--font-mono);
-      font-size: 9px;
+      font-size: 8.5px;
       font-weight: 900;
       color: #FFF;
       margin: 2px 0;
     }
 
     .stage-desc {
-      font-size: 8px;
+      font-size: 7.5px;
       color: rgba(255, 255, 255, 0.75);
-      line-height: 11px;
+      line-height: 10px;
     }
 
-    .stage-meta {
+    /* ================= FLOATING ACTION CONTROLS (BOTTOM LEFT & RIGHT) ================= */
+    .bottom-floating-bar {
+      position: fixed;
+      bottom: 8px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 100%;
+      max-width: 350px;
+      padding: 0 10px;
       display: flex;
-      gap: 12px;
-      font-size: 7.5px;
-      color: rgba(255, 255, 255, 0.5);
-      margin-top: 4px;
+      justify-content: space-between;
+      align-items: center;
+      pointer-events: none;
+      z-index: 100;
     }
 
-    /* COMBAT SPECIAL MOVE CARD */
-    .special-move-banner {
-      background: rgba(0, 0, 0, 0.5);
-      border-left: 4px solid var(--crimson);
-      border-radius: 6px;
-      padding: 8px;
-      margin-bottom: 8px;
-    }
-
-    .special-badge {
-      display: inline-block;
-      font-family: var(--font-mono);
-      font-size: 7.5px;
+    /* BOTTOM LEFT: Round 30px Right Arrow Button to Move Ahead */
+    .btn-round-arrow-left {
+      width: 30px;
+      height: 30px;
+      min-width: 30px;
+      min-height: 30px;
+      border-radius: 50%;
+      background: radial-gradient(circle, #24001A 0%, #0A0008 100%);
+      border: 1.5px solid var(--neon-blue);
+      color: var(--neon-blue);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 15px;
       font-weight: 900;
-      color: #FFF;
-      padding: 2px 5px;
-      border-radius: 3px;
-      margin-bottom: 3px;
+      box-shadow: 0 0 10px rgba(0, 229, 255, 0.5);
+      pointer-events: auto;
+      touch-action: manipulation;
+      cursor: pointer;
     }
 
-    .special-move-name {
+    .btn-round-arrow-left:active {
+      transform: scale(0.90);
+      background: var(--neon-blue);
+      color: #000;
+    }
+
+    /* BOTTOM RIGHT: Spirit Animal Final Blow Melee Smash Attack Button */
+    .btn-final-smash-right {
+      height: 36px;
+      padding: 0 12px;
+      border-radius: 18px;
+      background: linear-gradient(90deg, #FF1A5E 0%, #FFC837 100%);
+      border: 1.5px solid #FFF;
+      color: #000;
       font-family: var(--font-mono);
-      font-size: 10px;
+      font-size: 9px;
       font-weight: 900;
-      margin-bottom: 2px;
+      letter-spacing: 0.5px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      box-shadow: 0 0 14px rgba(255, 200, 55, 0.6);
+      pointer-events: auto;
+      touch-action: manipulation;
+      cursor: pointer;
     }
 
-    .special-move-desc {
-      font-size: 8px;
-      line-height: 11px;
-      color: rgba(255, 255, 255, 0.8);
+    .btn-final-smash-right:active {
+      transform: scale(0.92);
+      filter: brightness(1.2);
     }
 
-    .philosophy-quote {
-      border-left: 2px solid var(--gold);
-      padding-left: 6px;
-      font-size: 8px;
-      font-style: italic;
-      line-height: 12px;
-      color: rgba(255, 255, 255, 0.85);
-      margin-bottom: 8px;
+    /* ================= MODALS: PAUSE, SETTINGS, SMASH VIDEO, RESULT ================= */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(0, 0, 0, 0.85);
+      backdrop-filter: blur(4px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 200;
+      padding: 12px;
     }
 
-    .quotes-grid {
+    .modal-dialog {
+      background: var(--surface-card);
+      border: 1.5px solid var(--border-dark);
+      border-radius: 10px;
+      width: 100%;
+      max-width: 320px;
+      padding: 12px;
       display: flex;
       flex-direction: column;
-      gap: 4px;
+      gap: 8px;
+      box-shadow: 0 0 20px rgba(0, 0, 0, 0.9);
     }
 
-    .quote-card {
-      background: rgba(0, 0, 0, 0.35);
-      padding: 4px 6px;
-      border-radius: 4px;
-      font-size: 7.5px;
-    }
-
-    .quote-type {
-      font-weight: 800;
+    .modal-title {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      font-weight: 900;
       color: var(--gold);
-      margin-right: 4px;
+      text-align: center;
     }
 
-    .quote-content {
+    .setting-item-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 8px;
+      font-weight: 700;
+      color: rgba(255, 255, 255, 0.85);
+    }
+
+    .setting-control {
+      accent-color: var(--crimson);
+    }
+
+    .btn-modal-action {
+      background: var(--surface-elevated);
+      border: 1px solid var(--border-dark);
+      border-radius: 6px;
+      padding: 8px;
+      font-family: var(--font-mono);
+      font-size: 8.5px;
+      font-weight: 800;
+      color: #FFF;
+      text-align: center;
+      touch-action: manipulation;
+    }
+
+    .btn-modal-action:active {
+      background: var(--crimson);
+    }
+
+    /* FINAL BLOW SMASH CINEMATIC OVERLAY */
+    .smash-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(0, 0, 0, 0.92);
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 300;
+      padding: 16px;
+      text-align: center;
+      gap: 8px;
+    }
+
+    .smash-overlay.flash-active {
+      animation: smashFlash 0.3s ease-out;
+    }
+
+    @keyframes smashFlash {
+      0% { background: #FFFFFF; }
+      100% { background: rgba(0, 0, 0, 0.92); }
+    }
+
+    .smash-video-wrapper {
+      width: 260px;
+      height: 160px;
+      border-radius: 8px;
+      overflow: hidden;
+      border: 2px solid var(--gold);
+      background: #000;
+      box-shadow: 0 0 20px rgba(255, 200, 55, 0.8);
+    }
+
+    .smash-video-player {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .smash-cinematic-title {
+      font-family: var(--font-mono);
+      font-size: 13px;
+      font-weight: 900;
+      color: #FFC837;
+      text-shadow: 0 0 10px rgba(255, 200, 55, 0.8);
+    }
+
+    .smash-cinematic-spirit {
+      font-size: 9px;
+      font-weight: 800;
+      color: var(--neon-blue);
+    }
+
+    .smash-cinematic-quote {
+      font-size: 8px;
       font-style: italic;
-      color: rgba(255, 255, 255, 0.8);
+      color: rgba(255, 255, 255, 0.85);
     }
   </style>
 </head>
 <body>
   <div class="app-container">
-    <!-- TOP HEADER -->
+    <!-- GLOBAL TOP HEADER -->
     <header class="header">
       <div>
         <div class="header-title">TIME TOURNAMENT</div>
-        <div class="header-subtitle">CHAMPION DOSSIER & RETRO ARCADE HUB</div>
+        <div class="header-sub">ELEMENTAL SPIRIT ARCADE • TCL 350x550</div>
       </div>
-      <div class="status-badge">ONLINE PWA</div>
+      <div class="header-controls">
+        <button class="btn-pause-header" id="btnPauseHeader" title="Settings & Pause">⚙️</button>
+      </div>
     </header>
 
-    <!-- COMBO PRACTICE HUD -->
-    <div class="combo-hud" id="comboDisplay">
-      <div>
-        <div class="combo-num" id="comboNumber">0x</div>
-        <div class="combo-label" id="comboLabel">PRACTICE COMBO</div>
+    <!-- 1. MAIN MENU SCREEN -->
+    <div class="view-screen" id="viewMenu">
+      <div class="menu-hero-banner">
+        <div style="font-size: 24px;">⚡🥋🔥</div>
+        <div class="menu-logo-title">TIME TOURNAMENT</div>
+        <div class="menu-logo-sub">HUMAN × ELEMENT × SPIRIT ANIMAL SMASH</div>
       </div>
-      <div class="combat-test-btns">
-        <button class="btn-test" id="btnPunch">👊 PUNCH</button>
-        <button class="btn-test" id="btnKick">🦵 KICK</button>
-        <button class="btn-test" id="btnSpecial">⚡ ULTRA</button>
-      </div>
-    </div>
 
-    <!-- ROSTER SELECTOR GRID -->
-    <div class="roster-grid" id="rosterGrid">
-      <!-- Injected via app.js -->
-    </div>
-
-    <!-- HERO CHARACTER CARD -->
-    <div class="hero-card">
-      <div class="hero-layout">
-        <div class="canvas-box">
-          <canvas id="portraitCanvas" width="110" height="130"></canvas>
-        </div>
-        <div class="hero-meta-panel">
+      <div class="menu-action-list">
+        <div class="btn-menu-option primary" id="btnMenuStart">
           <div>
-            <div class="hero-name" id="fighterName">SHADOW NINJA</div>
-            <div class="hero-title" id="fighterTitle">★ THE PHANTOM BLADE ★</div>
-            <div class="hero-style" id="fighterStyle">NINJUTSU • 1580 FEUDAL KYOTO</div>
+            <div class="menu-opt-label">⚡ ARCADE MATCH</div>
+            <div class="menu-opt-desc">Select Human Fighter, Rival & Elemental Arena</div>
           </div>
-          <div class="hero-quote" id="fighterQuote">"Step into darkness..."</div>
+          <span style="font-size: 14px;">▶</span>
+        </div>
+
+        <div class="btn-menu-option" id="btnMenuStory">
+          <div>
+            <div class="menu-opt-label">📜 STORY MODE & RIVALS</div>
+            <div class="menu-opt-desc">Interactive dialogue, lore & destined clashes</div>
+          </div>
+          <span style="font-size: 14px;">💬</span>
+        </div>
+
+        <div class="btn-menu-option" id="btnMenuBracket">
+          <div>
+            <div class="menu-opt-label">🏆 TOURNAMENT BRACKET</div>
+            <div class="menu-opt-desc">Single-elimination tree championship</div>
+          </div>
+          <span style="font-size: 14px;">🏅</span>
+        </div>
+
+        <div class="btn-menu-option" id="btnMenuDossier">
+          <div>
+            <div class="menu-opt-label">🏛️ FIGHTER DOSSIER</div>
+            <div class="menu-opt-desc">Strengths, weaknesses & spirit animals</div>
+          </div>
+          <span style="font-size: 14px;">📖</span>
+        </div>
+
+        <div class="btn-menu-option" id="btnMenuSettings">
+          <div>
+            <div class="menu-opt-label">⚙️ SETTINGS & AUDIO</div>
+            <div class="menu-opt-desc">Volume, haptic vibration & text speed</div>
+          </div>
+          <span style="font-size: 14px;">🔧</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2. START GAME SCREEN -->
+    <div class="view-screen" id="viewStartGame" style="display:none;">
+      <div class="matchup-banner">
+        <div style="font-family:var(--font-mono); font-size:9px; font-weight:800; color:var(--gold); text-align:center;">
+          ⚔️ SELECT FIGHTER & DESTINED RIVAL
+        </div>
+
+        <!-- VERSUS SPLASH -->
+        <div class="versus-row">
+          <div class="fighter-matchup-card" style="border-color:var(--crimson);">
+            <div style="font-size:6.5px; color:var(--crimson); font-weight:800;">PLAYER 1 (YOU)</div>
+            <div style="font-family:var(--font-mono); font-size:9px; font-weight:900;" id="sgP1Name">SHADOW NINJA</div>
+            <div style="font-size:7px; color:rgba(255,255,255,0.7);" id="sgP1Origin">Human Shinobi</div>
+            <div style="font-size:7px; color:var(--neon-blue); font-weight:800;" id="sgP1Element">🌌 VOID & SHADOW</div>
+            <div style="font-size:7px; color:var(--gold);" id="sgP1Spirit">🐆 PHANTOM PANTHER</div>
+          </div>
+
+          <div class="vs-emblem">VS</div>
+
+          <div class="fighter-matchup-card" style="border-color:var(--neon-blue);">
+            <div style="font-size:6.5px; color:var(--neon-blue); font-weight:800;">RIVAL OPPONENT</div>
+            <div style="font-family:var(--font-mono); font-size:9px; font-weight:900;" id="sgP2Name">TITAN MMA</div>
+            <div style="font-size:7px; color:rgba(255,255,255,0.7);" id="sgP2Origin">Human Cybernetic</div>
+            <div style="font-size:7px; color:var(--neon-purple); font-weight:800;" id="sgP2Element">⚡ LIGHTNING & PLASMA</div>
+            <div style="font-size:7px; color:var(--gold);" id="sgP2Spirit">🐅 THUNDER TIGER</div>
+          </div>
+        </div>
+
+        <!-- STRENGTHS & WEAKNESSES ANALYSIS -->
+        <div class="matchup-analysis-box" id="sgMatchupAnalysis">
+          <!-- Dynamic advantage analysis via LUT -->
+        </div>
+
+        <!-- QUICK ROSTER SELECTOR -->
+        <div style="font-family:var(--font-mono); font-size:7.5px; font-weight:800; color:rgba(255,255,255,0.6); margin-top:2px;">
+          CHOOSE YOUR FIGHTER:
+        </div>
+        <div class="roster-grid" id="sgRosterGrid">
+          <!-- Populated dynamically -->
         </div>
       </div>
 
-      <!-- STATS METERS -->
-      <div class="stats-matrix">
-        <div class="stat-row">
-          <span class="stat-tag">PWR</span>
-          <div class="stat-track"><div class="stat-bar" id="statPower"></div></div>
-          <span class="stat-num" id="statPowerVal">70%</span>
+      <div style="display:flex; gap:4px;">
+        <button class="btn-modal-action" id="btnStartGameBack" style="flex:1;">◀ MENU</button>
+        <button class="btn-modal-action" id="btnStartGameEngage" style="flex:2; background:var(--crimson); border-color:var(--bright-red);">
+          ENGAGE BATTLE ⚔️
+        </button>
+      </div>
+    </div>
+
+    <!-- 3. BATTLE SCREEN -->
+    <div class="view-screen" id="viewBattle" style="display:none;">
+      <!-- BATTLE HUD (HEALTH & SUPER BARS & ROUND CLOCK) -->
+      <div class="battle-hud">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:2px;">
+          <div class="health-bar-container" style="flex:1;">
+            <div class="hp-header">
+              <span id="battleP1NameLabel" style="color:var(--bright-red);">P1: YOU</span>
+              <span id="battleP1HpVal" style="color:var(--gold);">100 HP</span>
+            </div>
+            <div class="hp-track"><div class="hp-fill" id="battleP1HpBar" style="width:100%;"></div></div>
+          </div>
+
+          <div style="padding:0 6px; text-align:center;">
+            <div style="font-family:var(--font-mono); font-size:13px; font-weight:900; color:#FFC837; text-shadow:0 0 8px rgba(255,200,55,0.8);" id="battleTimerSec">99</div>
+            <div style="font-size:5.5px; letter-spacing:0.5px; color:rgba(255,255,255,0.6);">SEC</div>
+          </div>
+
+          <div class="health-bar-container" style="flex:1;">
+            <div class="hp-header">
+              <span id="battleP2NameLabel" style="color:var(--neon-blue);">RIVAL: CPU</span>
+              <span id="battleP2HpVal" style="color:var(--neon-blue);">100 HP</span>
+            </div>
+            <div class="hp-track"><div class="hp-fill rival" id="battleP2HpBar" style="width:100%;"></div></div>
+          </div>
         </div>
-        <div class="stat-row">
-          <span class="stat-tag">SPD</span>
-          <div class="stat-track"><div class="stat-bar" id="statSpeed"></div></div>
-          <span class="stat-num" id="statSpeedVal">95%</span>
+
+        <div>
+          <div class="hp-header" style="margin-bottom:1px;">
+            <span style="font-size:6.5px; color:var(--neon-blue);">⚡ SPIRIT SMASH METER</span>
+            <span style="font-size:6.5px; color:#FFF;">READY</span>
+          </div>
+          <div class="super-meter-track"><div class="super-meter-fill" id="battleSuperMeterBar" style="width:100%;"></div></div>
         </div>
-        <div class="stat-row">
-          <span class="stat-tag">DEF</span>
-          <div class="stat-track"><div class="stat-bar" id="statDefense"></div></div>
-          <span class="stat-num" id="statDefenseVal">65%</span>
+      </div>
+
+      <!-- 2D CANVAS ARENA (POWERED BY LUT & MATTER.JS DEBRIS) -->
+      <div class="battle-stage-canvas-box">
+        <canvas id="portraitCanvas" width="320" height="140"></canvas>
+      </div>
+
+      <!-- TOUCH COMBAT ACTIONS -->
+      <div class="combat-touch-controls">
+        <button class="btn-combat-act" id="btnBattlePunch">👊 JAB</button>
+        <button class="btn-combat-act" id="btnBattleKick">🦵 KICK</button>
+        <button class="btn-combat-act" id="btnBattleSpecial">⚡ SPECIAL</button>
+      </div>
+    </div>
+
+    <!-- 4. STORY DIALOGUE (VISUAL NOVEL VIA DOUBLY LINKED LIST) -->
+    <div class="view-screen" id="viewDialogue" style="display:none;">
+      <div class="dialogue-wrapper">
+        <div class="dialogue-speaker-banner">
+          <div class="dialogue-avatar" id="dialogueAvatar">🐆</div>
+          <div>
+            <div class="dialogue-speaker-name" id="dialogueSpeaker">SHADOW NINJA</div>
+            <div class="dialogue-speaker-title" id="dialogueTitle">THE PHANTOM BLADE</div>
+          </div>
         </div>
-        <div class="stat-row">
-          <span class="stat-tag">SPC</span>
-          <div class="stat-track"><div class="stat-bar" id="statSpecial"></div></div>
-          <span class="stat-num" id="statSpecialVal">90%</span>
+
+        <div class="dialogue-box-body" id="btnAdvanceDialogue">
+          <div id="dialogueText">Step into darkness... your blade cannot cut what it cannot see.</div>
+          <div class="dialogue-prompt-advance">TOUCH TO ADVANCE ▶</div>
         </div>
       </div>
     </div>
 
-    <!-- INNER SUB-TABS -->
-    <div class="tabs-bar">
-      <div class="tab-btn active" data-tab="story">STORYLINE</div>
-      <div class="tab-btn" data-tab="traits">TRAITS & MASTERY</div>
-      <div class="tab-btn" data-tab="combat">COMBAT LORE</div>
+    <!-- 5. TOURNAMENT BRACKET TREE SCREEN -->
+    <div class="view-screen" id="viewBracket" style="display:none;">
+      <div class="hero-card" style="background:var(--surface-card); border-radius:8px; border:1px solid var(--border-dark); padding:8px;">
+        <div id="bracketContainer"></div>
+        <button class="btn-modal-action" id="btnBracketBack" style="width:100%; margin-top:8px;">◀ RETURN TO MENU</button>
+      </div>
     </div>
 
-    <!-- DYNAMIC TAB CONTENT -->
-    <div class="tab-container" id="tabContent">
-      <!-- Injected via app.js -->
+    <!-- 6. FIGHTER DOSSIER & LORE -->
+    <div class="view-screen" id="viewDossier" style="display:none;">
+      <!-- ROSTER SELECTOR GRID -->
+      <div class="roster-grid" id="rosterGrid">
+        <!-- Dynamically generated via module -->
+      </div>
+
+      <!-- HERO META CARD -->
+      <div class="hero-card" style="background:var(--surface-card); border-radius:8px; border:1px solid var(--border-dark); padding:6px; display:flex; flex-direction:column; gap:4px;">
+        <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+          <div>
+            <div style="font-family:var(--font-mono); font-size:11px; font-weight:900;" id="fighterName">SHADOW NINJA</div>
+            <div style="font-size:7px; color:var(--gold); font-weight:800;" id="fighterElementState">🌌 VOID & SHADOW</div>
+            <div style="font-size:7px; color:var(--neon-blue);" id="fighterSpiritAnimal">🐆 SPIRIT: PHANTOM PANTHER</div>
+          </div>
+          <button class="btn-modal-action" id="btnDossierBack" style="padding:3px 6px; font-size:7px;">◀ MENU</button>
+        </div>
+      </div>
+
+      <!-- TABS -->
+      <div class="tabs-bar">
+        <div class="tab-btn active" data-tab="story">STORYLINE</div>
+        <div class="tab-btn" data-tab="traits">STRENGTHS & WEAKNESSES</div>
+        <div class="tab-btn" data-tab="combat">MELEE SMASH LORE</div>
+      </div>
+
+      <div class="tab-container" id="tabContent">
+        <!-- Dynamic content -->
+      </div>
+
+      <!-- STAGES SECTION -->
+      <div style="font-family:var(--font-mono); font-size:8.5px; font-weight:900; color:var(--gold); margin-top:2px;">
+        🏛️ TIME ARENAS (STAGES 1-9)
+      </div>
+      <div class="stages-grid" id="stagesGrid">
+        <!-- Stages grid -->
+      </div>
     </div>
 
-    <!-- ARENA STAGES (1-9) -->
-    <div class="stages-section-title">🏛️ MULTI-ERA BATTLEGROUNDS (STAGES 1-9)</div>
-    <div class="stages-grid" id="stagesGrid">
-      <!-- Injected via app.js -->
+    <!-- ================= FLOATING ACTION CONTROLS (BOTTOM LEFT & RIGHT) ================= -->
+    <div class="bottom-floating-bar">
+      <!-- BOTTOM LEFT: Round 30px right arrow button to move ahead -->
+      <button class="btn-round-arrow-left" id="btnRoundArrowMoveAhead" title="Move Ahead">→</button>
+
+      <!-- BOTTOM RIGHT: Spirit Animal Final Blow Melee Smash Attack Button -->
+      <button class="btn-final-smash-right" id="btnFinalSmash" title="Final Blow Melee Smash">
+        <span>🔥 SPIRIT SMASH</span>
+      </button>
+    </div>
+
+    <!-- ================= PAUSE & SETTINGS MODAL ================= -->
+    <div class="modal-overlay" id="pauseSettingsModal">
+      <div class="modal-dialog">
+        <div class="modal-title">⚙️ BATTLE PAUSE & SETTINGS</div>
+
+        <div class="setting-item-row">
+          <span>Master Volume</span>
+          <input type="range" id="sliderVolume" min="0" max="1" step="0.05" value="0.8" class="setting-control" style="width:100px;" />
+        </div>
+
+        <div class="setting-item-row">
+          <span>8-Bit Sound Effects</span>
+          <input type="checkbox" id="toggleSound" checked class="setting-control" />
+        </div>
+
+        <div class="setting-item-row">
+          <span>Haptic Vibration</span>
+          <input type="checkbox" id="toggleVibration" checked class="setting-control" />
+        </div>
+
+        <div class="setting-item-row">
+          <span>Dialogue Text Speed</span>
+          <select id="selectTextSpeed" style="background:#000; color:#FFF; border:1px solid var(--border-dark); border-radius:4px; font-size:7.5px; padding:2px;">
+            <option value="fast">Fast</option>
+            <option value="normal" selected>Normal</option>
+            <option value="instant">Instant</option>
+          </select>
+        </div>
+
+        <div style="display:flex; flex-direction:column; gap:4px; margin-top:6px;">
+          <button class="btn-modal-action" id="btnResumeGame" style="background:var(--crimson); border-color:var(--bright-red);">
+            RESUME FIGHT ▶
+          </button>
+          <button class="btn-modal-action" id="btnRestartMatch">RESTART MATCH 🔄</button>
+          <button class="btn-modal-action" id="btnQuitToMenu">QUIT TO MAIN MENU 🏠</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= FINAL BLOW SMASH CINEMATIC MODAL ================= -->
+    <div class="smash-overlay" id="smashCinematicModal">
+      <div class="smash-cinematic-title" id="smashCinematicTitle">VOID PANTHER ECLIPSE SMASH</div>
+      <div class="smash-cinematic-spirit" id="smashCinematicSpirit">🐆 PHANTOM PANTHER AWAKENED!</div>
+
+      <div class="smash-video-wrapper">
+        <video class="smash-video-player" id="smashVideoPlayer" loop muted playsinline poster="assets/sprites/fighter/east/jab/frame_002.png">
+          <source src="assets/cinematic_smash.mp4" type="video/mp4" />
+        </video>
+      </div>
+
+      <div class="smash-cinematic-quote" id="smashCinematicQuote">"BEHOLD THE FANGS OF THE VOID PANTHER!"</div>
+    </div>
+
+    <!-- ================= BATTLE RESULT MODAL ================= -->
+    <div class="modal-overlay" id="battleResultModal">
+      <div class="modal-dialog">
+        <div class="modal-title" id="battleResultTitle" style="font-size:16px;">🏆 VICTORY!</div>
+        <div style="font-size:8px; font-style:italic; text-align:center; color:rgba(255,255,255,0.85);" id="battleResultQuote">
+          "A true shadow leaves no trace upon the battlefield."
+        </div>
+        <div style="display:flex; gap:4px; margin-top:6px;">
+          <button class="btn-modal-action" id="btnResultRematch" style="flex:1; background:var(--crimson); border-color:var(--bright-red);">
+            REMATCH 🔄
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 
-  <script type="module" src="./src/js/app.js"></script>
+  <!-- FULLY CODED INLINE ES MODULE WITH IMPORTS FROM ./src/js/ AND SPRITE ASSETS -->
+  <script type="module">
+    import { FIGHTERS } from './src/js/fighters.js';
+    import { STAGES } from './src/js/stages.js';
+    import { sound } from './src/js/audio.js';
+    import { CanvasRenderer } from './src/js/engine.js';
+    import { JAB_SPRITE_FRAMES, spriteEngine, SpriteAnimationEngine } from './src/js/sprites.js';
+    import { TimeTournamentApp } from './src/js/app.js';
+    import * as LUT from './src/js/lut.js';
+    import { ArrayUtils } from './src/js/array.js';
+    import { SinglyLinkedList, DoublyLinkedList, CircularLinkedList } from './src/js/list.js';
+    import { TournamentTree, SkillTreeNode } from './src/js/tree.js';
+    import { CommandTrie } from './src/js/trie.js';
+    import { Queue, PriorityQueue } from './src/js/queue.js';
+    import { Deque } from './src/js/dequeue.js';
+    import { srcManager, SrcManager } from './src/js/srcmanager.js';
+    import { assetManager, AssetManager } from './src/js/assetmanager.js';
+    import { spriteManager, SpriteManager, SpriteAnimation } from './src/js/spritemanager.js';
+    import { jsManager, JSManager } from './src/js/jsmanager.js';
+    import { Clock } from './src/js/clock.js';
+    import { gameClock, GameClock } from './src/js/gameclock.js';
+    import { playClock, PlayClock } from './src/js/playclock.js';
+    import { audioClock, AudioClock } from './src/js/audioclock.js';
+    import { universalClock, UniversalClock } from './src/js/universalclock.js';
+    import { contractor, Contractor } from './src/js/contractor.js';
+    import { composer, Composer } from './src/js/composer.js';
+    import { communicator, Communicator } from './src/js/communicator.js';
+    import { manager, Manager } from './src/js/manager.js';
+
+    // Initialize standalone application controller
+    const tournamentApp = new TimeTournamentApp();
+    tournamentApp.init();
+
+    // Populate Start Game Roster grid
+    const sgGrid = document.getElementById('sgRosterGrid');
+    if (sgGrid) {
+      sgGrid.innerHTML = '';
+      FIGHTERS.forEach(fighter => {
+        const card = document.createElement('div');
+        card.className = 'roster-card';
+        card.innerHTML = `
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <div class="roster-badge" style="background:${fighter.color}">${fighter.code}</div>
+            <span style="font-size:8px;">${fighter.spiritAnimalSymbol}</span>
+          </div>
+          <div class="roster-name" style="color:${fighter.accent}">${fighter.name}</div>
+          <div class="roster-era">${fighter.elementalState}</div>
+        `;
+        const handleTouch = (e) => {
+          if (e && e.cancelable) e.preventDefault();
+          sound.playSelect();
+          tournamentApp.selectFighter(fighter);
+        };
+        card.addEventListener('pointerdown', handleTouch, { passive: false });
+        card.addEventListener('touchstart', handleTouch, { passive: false });
+        sgGrid.appendChild(card);
+      });
+    }
+
+    // Export globally for inspection / test verification
+    window.TimeTournamentApp = tournamentApp;
+    window.FightersDatabase = FIGHTERS;
+    window.StagesDatabase = STAGES;
+    window.SpriteEngine = spriteEngine;
+    window.SoundEngine = sound;
+    window.LUT = LUT;
+    window.ArrayUtils = ArrayUtils;
+    window.LinkedLists = { SinglyLinkedList, DoublyLinkedList, CircularLinkedList };
+    window.TreeDataStructures = { TournamentTree, SkillTreeNode };
+    window.CommandTrie = CommandTrie;
+    window.Queues = { Queue, PriorityQueue };
+    window.Deque = Deque;
+    window.SrcManager = srcManager;
+    window.AssetManager = assetManager;
+    window.SpriteManager = spriteManager;
+    window.JSManager = jsManager;
+    window.Clocks = { Clock, GameClock: gameClock, PlayClock: playClock, AudioClock: audioClock, UniversalClock: universalClock };
+    window.Contractor = contractor;
+    window.Composer = composer;
+    window.Communicator = communicator;
+    window.MasterManager = manager;
+  </script>
 </body>
 </html>

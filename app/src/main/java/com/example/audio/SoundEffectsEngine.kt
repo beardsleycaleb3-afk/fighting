@@ -10,12 +10,16 @@ import android.os.Vibrator
 import android.os.VibratorManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.math.sin
 import kotlin.random.Random
 
 class SoundEffectsEngine(context: Context) {
-    private val scope = CoroutineScope(Dispatchers.Default)
+    private val job = SupervisorJob()
+    private val scope = CoroutineScope(Dispatchers.Default + job)
     private var soundEnabled = true
 
     private val vibrator: Vibrator? = try {
@@ -34,6 +38,12 @@ class SoundEffectsEngine(context: Context) {
     fun toggleSound(): Boolean {
         soundEnabled = !soundEnabled
         return soundEnabled
+    }
+
+    fun release() {
+        try {
+            job.cancel()
+        } catch (_: Exception) {}
     }
 
     fun vibrate(durationMs: Long, amplitude: Int = 180) {
@@ -62,11 +72,19 @@ class SoundEffectsEngine(context: Context) {
     ) {
         if (!soundEnabled) return
         scope.launch {
+            var audioTrack: AudioTrack? = null
             try {
                 val numSamples = (sampleRate * 0.35).toInt()
                 val samples = generateSamples(sampleRate, numSamples)
 
-                val audioTrack = AudioTrack.Builder()
+                val minBuf = AudioTrack.getMinBufferSize(
+                    sampleRate,
+                    AudioFormat.CHANNEL_OUT_MONO,
+                    AudioFormat.ENCODING_PCM_16BIT
+                )
+                val bufferSizeInBytes = maxOf(if (minBuf > 0) minBuf * 2 else 4096, samples.size * 2)
+
+                audioTrack = AudioTrack.Builder()
                     .setAudioAttributes(
                         AudioAttributes.Builder()
                             .setUsage(AudioAttributes.USAGE_GAME)
@@ -80,18 +98,24 @@ class SoundEffectsEngine(context: Context) {
                             .setChannelMask(AudioFormat.CHANNEL_OUT_MONO)
                             .build()
                     )
-                    .setBufferSizeInBytes(samples.size * 2)
-                    .setTransferMode(AudioTrack.MODE_STATIC)
+                    .setBufferSizeInBytes(bufferSizeInBytes)
+                    .setTransferMode(AudioTrack.MODE_STREAM)
                     .build()
 
-                audioTrack.write(samples, 0, samples.size)
                 audioTrack.play()
-                // Let audio track play then release
-                Thread.sleep((samples.size * 1000L / sampleRate) + 50)
-                audioTrack.stop()
-                audioTrack.release()
+                audioTrack.write(samples, 0, samples.size)
+                
+                val playDurationMs = ((samples.size.toDouble() / sampleRate) * 1000.0).toLong() + 30L
+                delay(playDurationMs)
             } catch (_: Exception) {
                 // Audio synthesis fallback safe
+            } finally {
+                try {
+                    audioTrack?.stop()
+                    audioTrack?.release()
+                } catch (_: Exception) {
+                    // Safe cleanup
+                }
             }
         }
     }
