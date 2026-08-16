@@ -1,7 +1,7 @@
 {
-  "name": "Time Tournament: Champion of Eras",
-  "short_name": "TimeTournament",
-  "description": "2D Retro Arcade Fighting Game and Tournament Champion Dossier",
+  "name": "fighting",
+  "short_name": "fighting",
+  "description": "2D Retro Arcade fighter",
   "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#0A0006",
